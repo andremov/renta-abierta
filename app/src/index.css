@@ -531,14 +531,26 @@ select {
 @media (max-width: 1100px) {
   .body {
     grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+  .sidebar {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+  }
+  .main {
+    grid-row: 1;
+    grid-column: 2;
   }
   .help {
+    grid-row: 2;
     grid-column: 2;
     border-left: 0;
     border-top: 1px solid var(--rule);
   }
-  .body {
-    overflow-y: auto;
+  /* narrow screens: the page scrolls as a whole instead of three panes */
+  .app {
+    height: auto;
+    min-height: 100%;
   }
   .main,
   .help,
@@ -549,18 +561,24 @@ select {
 @media (max-width: 720px) {
   .body {
     grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto;
   }
   .sidebar {
+    grid-row: 1;
+    grid-column: 1;
     border-right: 0;
     border-bottom: 1px solid var(--rule);
     max-height: 40vh;
     overflow-y: auto;
   }
-  .help {
-    grid-column: 1;
-  }
   .main {
+    grid-row: 2;
+    grid-column: 1;
     padding: 16px;
+  }
+  .help {
+    grid-row: 3;
+    grid-column: 1;
   }
   .topbar {
     padding: 10px 16px;
@@ -665,4 +683,25 @@ select {
 .nav-chip:hover {
   background: var(--accent);
   color: var(--accent-ink);
+}
+
+.pending {
+  max-width: 72ch;
+  border: 1px solid var(--danger);
+  background: var(--danger-soft);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+}
+.pending h2 {
+  font-size: var(--step-0);
+}
+.pending ul {
+  margin: 6px 0 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 2px;
+}
+.pending .link {
+  color: var(--ink);
+  text-align: left;
 }
