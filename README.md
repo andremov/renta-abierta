@@ -58,5 +58,11 @@ npm run dev
 npm run build            # static site in app/dist
 ```
 
+## Deployment
+
+Live at https://renta-abierta.vercel.app. The Vercel project (root directory
+`app/`) is connected to this repository: every push to `main` deploys to
+production, and other branches and pull requests get preview deployments.
+
 Visual/perf checks use the installed Chrome headlessly: `node scripts/shots.mjs`,
 `node scripts/smoke.mjs`, `node scripts/loadtime.mjs`.
