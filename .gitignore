@@ -4,3 +4,4 @@ dist/
 extracted/
 *.zip
 build/
+app/public/model.json

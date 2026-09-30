@@ -1,7 +1,7 @@
 // Workbook: holds cell values, orders formulas by dependency and recalculates.
 import { collectRefs, Node, parseFormula } from './parser';
 import { evaluate, scalar, Ctx } from './evaluate';
-import { Arr, ERR, errFromCode, parseA1, Range, Scalar } from './types';
+import { Arr, ERR, errFromCode, parseA1, Range, Scalar, Value } from './types';
 import type { CellReader } from './values';
 
 export type ModelScalar = number | string | boolean | { err: string };
@@ -13,6 +13,33 @@ export interface ModelCell {
   in?: 1;
   nf?: string;
   arr?: string;
+  /** index into Model.styles */
+  s?: number;
+}
+
+export interface ModelControl {
+  name: string;
+  kind: 'button' | 'label' | 'textbox' | string;
+  text: string;
+  from: [number, number] | null;
+  to: [number, number] | null;
+  /** sheet a navigation button opens; null if it points to a sheet that no longer exists */
+  target?: string | null;
+}
+
+export interface CellStyle {
+  b?: 1;
+  i?: 1;
+  u?: 1;
+  sz?: number;
+  color?: string;
+  bg?: string;
+  bd?: (string | null)[];
+  ha?: string;
+  va?: string;
+  wrap?: 1;
+  indent?: number;
+  rot?: number;
 }
 
 export interface ModelSheet {
@@ -23,12 +50,17 @@ export interface ModelSheet {
   cols: [number, number, number][];
   hiddenCols: [number, number][];
   hiddenRows: number[];
+  heights?: Record<string, number>;
+  gridLines?: boolean;
+  codeName?: string | null;
+  controls?: ModelControl[];
   cells: Record<string, ModelCell>;
 }
 
 export interface Model {
   sheets: ModelSheet[];
-  names: Record<string, string>;
+  names?: Record<string, string>;
+  styles?: CellStyle[];
 }
 
 interface Rec {
@@ -229,6 +261,19 @@ export class Workbook implements CellReader {
   addr(i: number): string {
     const f = this.formulas[i];
     return `${this.sheetNames[f.sheet]}!${colName(f.c)}${f.r + 1}`;
+  }
+
+  private adhoc = new Map<string, Node>();
+
+  /** Evaluate an arbitrary formula as if it were in (sheet, r, c). Returns ranges unresolved. */
+  evalAt(sheet: number, r: number, c: number, src: string): Value {
+    const k = `${sheet}|${src}`;
+    let node = this.adhoc.get(k);
+    if (!node) {
+      node = parseFormula(src.replace(/^=/, ''), sheet, (n) => this.sheetIndex(n));
+      this.adhoc.set(k, node);
+    }
+    return evaluate(node, { rd: this, sheet, row: r, col: c, array: false, today: this.today });
   }
 
   private evalFormula(f: Formula): Scalar {
