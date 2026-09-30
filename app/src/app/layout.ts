@@ -11,6 +11,8 @@ export interface Placed {
   rowSpan: number;
   colSpan: number;
   cell?: ModelCell;
+  /** accessible name for input cells: row label and column heading */
+  label?: string;
 }
 
 export interface PlacedControl {
@@ -152,6 +154,23 @@ export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>): SheetLayou
     const colEnd = lastLine(colLine, ctl.from[1], ctl.to[1]);
     if (!row || !col || !rowEnd || !colEnd) continue;
     controls.push({ name: ctl.name, text: ctl.text, target: ctl.target, row, col, rowEnd, colEnd });
+  }
+  // accessible names: nearest text to the left (row label) and above (column heading)
+  const text = new Map<string, string>();
+  for (const p of placed) if (typeof p.cell?.v === 'string' && p.cell.v.trim()) text.set(`${p.r},${p.c}`, p.cell.v.trim());
+  const clean = (t: string) => t.replace(/\s+/g, ' ').slice(0, 120);
+  for (const p of placed) {
+    if (!p.cell?.in) continue;
+    let left: string | undefined;
+    for (let c = p.c - 1; c >= Math.max(0, p.c - 12) && !left; c--) left = text.get(`${p.r},${c}`);
+    // form-style rows have a label on the left; table cells take their column heading
+    let up: string | undefined;
+    if (!left)
+      for (let r = p.r - 1; r >= Math.max(0, p.r - 25) && !up; r--) {
+        for (let c = p.c; c >= Math.max(0, p.c - 3) && !up; c--) up = text.get(`${r},${c}`);
+      }
+    const parts = [left ?? up].filter((x): x is string => !!x).map(clean);
+    p.label = parts.length ? `${parts[0]} (${p.a1})` : `Casilla ${p.a1}`;
   }
   return { widths, heights, cells: placed, controls };
 }

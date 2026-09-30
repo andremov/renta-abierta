@@ -7,6 +7,7 @@ import { SheetGrid } from './SheetGrid';
 import { validationAt } from './validation';
 import { formatValue } from './format';
 import { ExtrasPanel, HelperLinks } from './Extras';
+import { Pending } from './Checks';
 import { HELPER_OF, gatedHiddenRows, gatedRows } from './rules';
 
 const readHash = () => decodeURIComponent(location.hash.replace(/^#\/?/, ''));
@@ -91,6 +92,7 @@ export function Shell({ session }: { session: Session }) {
               <h1>{titles.get(sheet.name) ?? sheet.name}</h1>
               <SectionIntro text={sectionIntro(model, sheet.name)} />
               <HelperLinks session={session} sheet={sheet.name} go={go} titles={titles} />
+              {sheet.name === FORM_SHEET && <Pending session={session} go={go} />}
               <SheetGrid
                 key={sheet.name}
                 session={session}
@@ -130,7 +132,7 @@ function SectionList({ nav, current, go, session }: { nav: NavNode[]; current?: 
           <span>{n.label}</span>
           {count > 0 && <span className="pill" title={`${count} casillas diligenciadas`}>{count}</span>}
         </button>
-        {n.children.length > 0 && (depth === 0) && (
+        {n.children.length > 0 && depth === 0 && (n.sheet === current || n.children.some((c) => c.sheet === current)) && (
           <ul>{n.children.map((c) => item(c, depth + 1))}</ul>
         )}
       </li>
@@ -227,6 +229,7 @@ function Home({ nav, go, session }: { nav: NavNode[]; go: (s: string) => void; s
           </li>
         ))}
       </ol>
+      {filled > 0 && <Pending session={session} go={go} />}
       {filled > 0 && (
         <p className="muted">
           Patrimonio líquido calculado: <strong className="num">{form('AK14')}</strong>

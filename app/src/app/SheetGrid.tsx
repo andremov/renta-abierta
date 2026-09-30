@@ -129,7 +129,7 @@ const GridCell = memo(function GridCell({ p, style, session, sheet, si, value, o
   if (isInput) {
     return (
       <div className="cell cell--input" style={css}>
-        <CellInput a1={p.a1} nf={p.cell?.nf} value={value} session={session} sheet={sheet} si={si} onFocusCell={onFocusCell} />
+        <CellInput a1={p.a1} label={p.label ?? p.a1} nf={p.cell?.nf} value={value} session={session} sheet={sheet} si={si} onFocusCell={onFocusCell} />
       </div>
     );
   }
@@ -143,6 +143,7 @@ const GridCell = memo(function GridCell({ p, style, session, sheet, si, value, o
 
 interface InputProps {
   a1: string;
+  label: string;
   nf?: string;
   value: Scalar;
   session: Session;
@@ -151,7 +152,7 @@ interface InputProps {
   onFocusCell: (a1: string | null) => void;
 }
 
-function CellInput({ a1, nf, value, session, sheet, si, onFocusCell }: InputProps) {
+function CellInput({ a1, label, nf, value, session, sheet, si, onFocusCell }: InputProps) {
   const dv = useMemo(() => validationAt(sheet, a1), [sheet, a1]);
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -176,6 +177,8 @@ function CellInput({ a1, nf, value, session, sheet, si, onFocusCell }: InputProp
 
   const common = {
     id,
+    'aria-label': label,
+    title: label,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? `${id}-err` : undefined,
     onFocus: () => onFocusCell(a1),
@@ -186,7 +189,7 @@ function CellInput({ a1, nf, value, session, sheet, si, onFocusCell }: InputProp
     const known = options.some((o) => o === current);
     return (
       <>
-        <select {...common} value={current} onChange={(e) => commit(e.target.value)} title={current}>
+        <select {...common} value={current} onChange={(e) => commit(e.target.value)}>
           <option value="">—</option>
           {!known && current && <option value={current}>{current}</option>}
           {options.map((o) => (

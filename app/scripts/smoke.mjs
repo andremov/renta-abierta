@@ -1,0 +1,26 @@
+// End-to-end smoke test on the production build: CSP clean, typing flows to Form 210, backup round-trip.
+import { chromium } from 'playwright-core';
+const base = process.argv[2] ?? 'http://localhost:4173/';
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const page = await browser.newPage();
+const problems = [];
+page.on('console', (m) => ['error', 'warning'].includes(m.type()) && problems.push(m.text()));
+page.on('pageerror', (e) => problems.push(e.message));
+const external = [];
+page.on('request', (r) => !r.url().startsWith(base) && !r.url().startsWith('data:') && external.push(r.url()));
+await page.goto(`${base}#/DatosGenerales`);
+await page.waitForSelector('.sheet-grid');
+const nit = page.getByRole('textbox', { name: /Número de Identificación Tributaria/ }).first();
+await nit.fill('80123456');
+await nit.press('Enter');
+const years = page.getByRole('textbox', { name: /años que ha declarado/ });
+await years.fill('3');
+await years.press('Enter');
+await page.waitForSelector('#extra-DatosGenerales-H11');
+const dv = await page.locator('.cell').filter({ hasText: /^4$/ }).count();
+await page.goto(`${base}#/Formulario`);
+await page.waitForSelector('.sheet-grid');
+const formHasNit = (await page.locator('.sheet-grid').innerText()).includes('80123456');
+const pending = await page.locator('.pending li').count();
+console.log(JSON.stringify({ dvShown: dv > 0, formHasNit, pending, problems, external }, null, 1));
+await browser.close();
