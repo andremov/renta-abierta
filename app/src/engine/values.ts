@@ -64,6 +64,9 @@ export function toStr(v: Scalar): string | XErr {
 /** Round away from zero after clearing binary noise, like Excel. */
 export function roundTo(n: number, digits: number, mode: 'round' | 'trunc' | 'up' = 'round'): number {
   const d = Math.trunc(digits);
+  // Excel tolerates absurd digit counts: beyond double precision the number is unchanged / zero.
+  if (d > 20) return n;
+  if (d < -20) return 0;
   const scale = 10 ** Math.abs(d);
   let x = d >= 0 ? n * scale : n / scale;
   x = Number(x.toPrecision(15));
