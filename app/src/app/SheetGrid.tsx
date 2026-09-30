@@ -69,7 +69,8 @@ export function SheetGrid({ session, sheet, hiddenRows, onFocusCell, onNavigate,
         aria-label={titles.get(sheet.name) ?? sheet.name}
         style={{
           gridTemplateColumns: layout.widths.map((w) => `${w}px`).join(' '),
-          gridTemplateRows: layout.heights.map((h) => `minmax(${h}px, auto)`).join(' '),
+          // fixed tracks like Excel rows; auto-sized tracks with spanning merges make layout very slow
+          gridTemplateRows: layout.heights.map((h) => `${h}px`).join(' '),
         }}
       >
         {layout.cells.map((p) => (

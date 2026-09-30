@@ -52,10 +52,16 @@ export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>): SheetLayou
   if (r1 < 0) {
     for (const { r, c, cell } of entries) {
       if (c >= HELPER_COL) continue;
-      if (cell.v !== undefined || cell.f !== undefined || cell.in || cell.s) {
-        r1 = Math.max(r1, r);
-        c1 = Math.max(c1, c);
-      }
+      if (cell.v !== undefined || cell.f !== undefined || cell.in || cell.s) r1 = Math.max(r1, r);
+      // columns only extend as far as real content; styled blanks alone don't widen the sheet
+      if (cell.v !== undefined || cell.in) c1 = Math.max(c1, c);
+    }
+    // merged areas starting inside the content keep their full width
+    for (const ref of sh.merges) {
+      const [a, b] = ref.split(':');
+      const [, ca] = parseA1(a);
+      const [, cb] = parseA1(b);
+      if (ca <= c1 && cb < HELPER_COL) c1 = Math.max(c1, cb);
     }
     for (const ctl of sh.controls ?? []) if (ctl.to && ctl.to[1] < HELPER_COL) r1 = Math.max(r1, ctl.to[0]);
     c1 = Math.min(c1, HELPER_COL - 1);

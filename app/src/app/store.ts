@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { Model, Workbook } from '../engine/workbook';
 import { XErr, type Scalar } from '../engine/types';
+import { inactiveKeys } from './rules';
 
 const STORAGE_KEY = 'renta-ag2025:inputs:v1';
 export const FILE_KIND = 'ayuda-renta-ag2025';
@@ -14,6 +15,8 @@ export class Session {
   inputs: Inputs = {};
   version = 0;
   savedAt: Date | null = null;
+  /** inputs that currently count as blank (hidden wizard rows, pop-up values whose trigger is off) */
+  inactive = new Set<string>();
   private listeners = new Set<() => void>();
 
   constructor(readonly model: Model) {
@@ -33,11 +36,22 @@ export class Session {
     this.listeners.forEach((l) => l());
   }
 
+  /** What the person typed (or the file's default), before rules blank anything out. */
+  raw = (sheet: string, a1: string): Scalar => {
+    const k = `${sheet}!${a1}`;
+    if (k in this.inputs) return this.inputs[k];
+    const v = this.model.sheets.find((s) => s.name === sheet)?.cells[a1]?.v;
+    return v === undefined || typeof v === 'object' ? null : v;
+  };
+
   private applyAll() {
-    for (const [k, v] of Object.entries(this.inputs)) {
+    const before = this.inactive;
+    this.inactive = inactiveKeys(this.inputs, this.raw);
+    const keys = new Set([...Object.keys(this.inputs), ...before]);
+    for (const k of keys) {
       const [sheet, a1] = splitKey(k);
       try {
-        this.wb.set(sheet, a1, v);
+        this.wb.set(sheet, a1, this.inactive.has(k) ? null : (this.inputs[k] ?? null));
       } catch {
         delete this.inputs[k]; // sheet no longer exists
       }
@@ -54,7 +68,7 @@ export class Session {
     if (v === null || v === '') delete this.inputs[k];
     else this.inputs[k] = v;
     this.wb.set(sheet, a1, v);
-    this.wb.recalc();
+    this.applyAll();
     this.persist();
     this.emit();
   }
@@ -63,6 +77,7 @@ export class Session {
   replace(inputs: Inputs) {
     this.wb = new Workbook(this.model);
     this.inputs = { ...inputs };
+    this.inactive = new Set();
     this.applyAll();
     this.persist();
     this.emit();
