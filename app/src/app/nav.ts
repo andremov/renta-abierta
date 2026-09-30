@@ -97,7 +97,12 @@ export function helpTable(model: Model, sh: ModelSheet): Map<string, CellHelp> {
 /** Sheet-level legal references ("Normas relacionadas" panel). */
 export function sheetNorms(sh: ModelSheet): string {
   const box = (sh.controls ?? []).find((c) => c.kind === 'textbox' && /normas/i.test(c.name));
-  return box?.text.trim() ?? '';
+  // the textbox text is scraped from binary state: drop short junk lines
+  return (box?.text ?? '')
+    .split('\n')
+    .filter((l) => l.trim().length > 6 && /[a-záéíóúñ]{3}/i.test(l))
+    .join('\n')
+    .trim();
 }
 
 /** Section introductions from the "msg" sheet. */
