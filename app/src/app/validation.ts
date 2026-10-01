@@ -108,7 +108,10 @@ export function checkValidation(wb: Workbook, sheet: number, a1: string, dv: Val
       const opts = listOptions(wb, sheet, a1, dv);
       if (!opts) return null;
       const s = typeof v === 'number' ? formatValue(v) : String(v);
-      return opts.some((o) => o.toUpperCase() === s.toUpperCase()) ? null : fail();
+      if (opts.some((o) => o.toUpperCase() === s.toUpperCase())) return null;
+      if (/TRM_diaria/i.test(dv.f1 ?? ''))
+        return 'Esa fecha no tiene tasa representativa del mercado (TRM) en la tabla de la DIAN. Elija un día con TRM publicada.';
+      return dv.error?.trim() || 'Elija una opción de la lista.';
     }
     case 'whole':
     case 'decimal':

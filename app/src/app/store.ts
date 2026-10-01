@@ -6,6 +6,10 @@ import { XErr, type Scalar } from '../engine/types';
 import { inactiveKeys } from './rules';
 
 const STORAGE_KEY = 'renta-ag2025:inputs:v1';
+const PROFILE_KEY = 'renta-ag2025:profile:v1';
+
+/** Questionnaire answers: question id -> yes/no. */
+export type Profile = Record<string, boolean>;
 export const FILE_KIND = 'ayuda-renta-ag2025';
 
 export type Inputs = Record<string, Scalar>; // "Sheet!A1" -> value
@@ -17,12 +21,14 @@ export class Session {
   savedAt: Date | null = null;
   /** inputs that currently count as blank (hidden wizard rows, pop-up values whose trigger is off) */
   inactive = new Set<string>();
+  profile: Profile = {};
   private listeners = new Set<() => void>();
 
   constructor(readonly model: Model) {
     this.wb = new Workbook(model);
-    const saved = readStorage();
-    if (saved) this.inputs = saved;
+    const saved = readStorage(STORAGE_KEY);
+    if (saved) this.inputs = saved as Inputs;
+    this.profile = (readStorage(PROFILE_KEY) as Profile) ?? {};
     this.applyAll();
   }
 
@@ -73,10 +79,27 @@ export class Session {
     this.emit();
   }
 
+  setAnswer(id: string, yes: boolean | null) {
+    if (yes === null) delete this.profile[id];
+    else this.profile[id] = yes;
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(this.profile));
+    } catch {
+      /* storage blocked: answers live in memory only */
+    }
+    this.emit();
+  }
+
   /** Replace all inputs (import / reset). */
-  replace(inputs: Inputs) {
+  replace(inputs: Inputs, profile: Profile = {}) {
     this.wb = new Workbook(this.model);
     this.inputs = { ...inputs };
+    this.profile = { ...profile };
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(this.profile));
+    } catch {
+      /* ignore */
+    }
     this.inactive = new Set();
     this.applyAll();
     this.persist();
@@ -84,7 +107,11 @@ export class Session {
   }
 
   exportJSON(): string {
-    return JSON.stringify({ kind: FILE_KIND, version: 1, exportedAt: new Date().toISOString(), inputs: this.inputs }, null, 1);
+    return JSON.stringify(
+      { kind: FILE_KIND, version: 1, exportedAt: new Date().toISOString(), profile: this.profile, inputs: this.inputs },
+      null,
+      1,
+    );
   }
 
   importJSON(text: string) {
@@ -96,7 +123,10 @@ export class Session {
       if (typeof k === 'string' && k.includes('!') && (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean'))
         clean[k] = v;
     }
-    this.replace(clean);
+    const profile: Profile = {};
+    if (data.profile && typeof data.profile === 'object')
+      for (const [k, v] of Object.entries(data.profile)) if (typeof v === 'boolean') profile[k] = v;
+    this.replace(clean, profile);
   }
 
   private persist() {
@@ -114,9 +144,9 @@ export function splitKey(k: string): [string, string] {
   return [k.slice(0, i), k.slice(i + 1)];
 }
 
-function readStorage(): Inputs | null {
+function readStorage(key: string): unknown {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;

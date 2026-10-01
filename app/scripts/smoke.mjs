@@ -1,4 +1,5 @@
-// End-to-end smoke test on the production build: CSP clean, typing flows to Form 210, backup round-trip.
+// End-to-end smoke test on a build: CSP clean, a form input flows to the Form 210 output,
+// the pop-up input appears when its trigger is set, nothing is requested from other hosts.
 import { chromium } from 'playwright-core';
 const base = process.argv[2] ?? 'http://localhost:4173/';
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
@@ -8,19 +9,24 @@ page.on('console', (m) => ['error', 'warning'].includes(m.type()) && problems.pu
 page.on('pageerror', (e) => problems.push(e.message));
 const external = [];
 page.on('request', (r) => !r.url().startsWith(base) && !r.url().startsWith('data:') && external.push(r.url()));
-await page.goto(`${base}#/DatosGenerales`);
-await page.waitForSelector('.sheet-grid');
-const nit = page.getByRole('textbox', { name: /Número de Identificación Tributaria/ }).first();
+
+await page.goto(`${base}#/p/datos-generales`);
+await page.waitForSelector('.form-page');
+const nit = page.getByLabel('Número de Identificación Tributaria (NIT)').first();
 await nit.fill('80123456');
 await nit.press('Enter');
-const years = page.getByRole('textbox', { name: /años que ha declarado/ });
+const years = page.getByLabel(/número de años que ha declarado/);
 await years.fill('3');
 await years.press('Enter');
-await page.waitForSelector('#extra-DatosGenerales-H11');
-const dv = await page.locator('.cell').filter({ hasText: /^4$/ }).count();
-await page.goto(`${base}#/Formulario`);
+const popup = await page.getByLabel('Impuesto neto de renta del año 2024').count();
+
+await page.goto(`${base}#/resultado`);
+await page.waitForSelector('.results');
+await page.getByLabel('Mostrar casillas en cero').check();
+const box5 = await page.locator('tr', { has: page.locator('td.n', { hasText: /^5$/ }) }).locator('td').nth(2).innerText();
+
+await page.goto(`${base}#/formulario`);
 await page.waitForSelector('.sheet-grid');
-const formHasNit = (await page.locator('.sheet-grid').innerText()).includes('80123456');
-const pending = await page.locator('.pending li').count();
-console.log(JSON.stringify({ dvShown: dv > 0, formHasNit, pending, problems, external }, null, 1));
+const printable = (await page.locator('.sheet-grid').innerText()).includes('80123456');
+console.log(JSON.stringify({ popupShown: popup > 0, box5, printableHasNit: printable, problems, external }, null, 1));
 await browser.close();

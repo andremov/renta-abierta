@@ -29,12 +29,21 @@ extracted/*.xlsm ──tools/extract.py──▶ build/model.json ──tools/bu
 - **Rules** (`app/src/app/rules.ts`): the VBA behaviour that affects values —
   question "wizards" and values the VBA asked for in pop-ups — as declarative
   rules. Inventories of the VBA: `build/vba-behaviors.md`, `build/vba-visibility.md`.
-- **UI**: each sheet is rendered as a CSS grid mirroring the Excel layout;
-  help text comes from the workbook's `AY_*` sheets.
+- **Forms** (`app/src/forms`): web forms are generated from each sheet's
+  structure (labels, inputs, tables, totals, validations) by `spec.ts`. Every
+  field reads and writes a real workbook cell, so the engine and its Excel
+  verification are untouched. A questionnaire (`pages.ts`) decides which pages
+  apply; help text comes from the workbook's `AY_*` sheets.
+- **Output**: the results page lists every Form 210 box (`casillas.json`,
+  mapped from the `Formulario` sheet) for transcription into DIAN's online
+  form, plus the `Formulario` sheet rendered as-is for printing.
 
 See `QUIRKS.md` for bugs found in the official workbook and deliberate differences.
 
 ## Verification
+
+The output must be exactly the Excel file's output. Three layers guard that:
+
 
 ```
 cd app
@@ -47,6 +56,9 @@ npm test                 # engine + app tests
   21 annexes) compared cell-by-cell with results computed by real Excel
   (`tools/gen_cases.py`, `tools/excel_oracle.py`; Windows + Excel, macros
   force-disabled). Skipped when `build/oracle` is absent.
+- `forms/coverage.test.ts`: every input cell a person can fill in Excel is
+  reachable from the web forms (77 input sheets), so nothing that affects the
+  Form 210 is left out. `forms/pages.test.ts`: every input sheet belongs to a page.
 
 ## Development
 
