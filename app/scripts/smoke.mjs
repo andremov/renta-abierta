@@ -15,7 +15,12 @@ await page.waitForSelector('.step-body');
 const nit = page.getByLabel('Número de Identificación Tributaria (NIT)').first();
 await nit.fill('80123456');
 await nit.press('Enter');
+// the wizard shows a few fields per step: continue until the question appears
 const years = page.getByLabel(/número de años que ha declarado/);
+for (let i = 0; i < 8 && !(await years.count()); i++) {
+  await page.locator('.pager .primary').click();
+  await page.waitForTimeout(80);
+}
 await years.fill('3');
 await years.press('Enter');
 const popup = await page.getByLabel('Impuesto neto de renta del año 2024').count();

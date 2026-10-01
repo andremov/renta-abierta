@@ -467,6 +467,15 @@ select {
   margin: 0;
   font-size: 0.8rem;
   color: var(--muted);
+  /* DIAN's guidance can be long: two lines until the person is in the field */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.field:focus-within .hint {
+  -webkit-line-clamp: unset;
+  display: block;
 }
 .field input[type="text"],
 .field input[type="date"],
