@@ -1,59 +1,74 @@
-// App chrome: header, section navigation, sheet view, help panel, backups.
+// App chrome: header, step navigation, routing between questionnaire, form pages and results.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from './store';
 import { useSession } from './store';
-import { buildNav, FORM_SHEET, helpTable, sectionIntro, sheetByName, sheetNorms, sheetTitles, type NavNode } from './nav';
+import { sheetByName } from './nav';
+import { GROUPS, ALL_PAGES, type PageDef } from '../forms/pages';
+import { FormPage } from '../forms/FormPage';
+import { ProfilePage } from '../forms/Profile';
+import { ResultsPage } from '../forms/Results';
 import { SheetGrid } from './SheetGrid';
-import { validationAt } from './validation';
-import { formatValue } from './format';
-import { ExtrasPanel, HelperLinks } from './Extras';
 import { Pending } from './Checks';
-import { HELPER_OF, gatedHiddenRows, gatedRows } from './rules';
 
-const readHash = () => decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+type Route = { kind: 'home' } | { kind: 'profile' } | { kind: 'page'; id: string } | { kind: 'results' } | { kind: 'form' };
+
+function readRoute(): Route {
+  const h = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  if (h === 'perfil') return { kind: 'profile' };
+  if (h === 'resultado') return { kind: 'results' };
+  if (h === 'formulario') return { kind: 'form' };
+  if (h.startsWith('p/')) return { kind: 'page', id: h.slice(2) };
+  return { kind: 'home' };
+}
+const href = (r: Route) =>
+  r.kind === 'home' ? '#/' : r.kind === 'profile' ? '#/perfil' : r.kind === 'results' ? '#/resultado' : r.kind === 'form' ? '#/formulario' : `#/p/${r.id}`;
+
+/** A page applies when it is unconditional, a question enabling it was answered yes, or it already holds data. */
+export function isActive(session: Session, p: PageDef): boolean {
+  if (!p.when) return true;
+  if (p.when.some((q) => session.profile[q])) return true;
+  const keys = Object.keys(session.inputs);
+  return p.sheets.some(({ sheet }) => keys.some((k) => k.startsWith(`${sheet}!`)));
+}
 
 export function Shell({ session }: { session: Session }) {
   useSession(session);
-  const model = session.model;
-  const nav = useMemo(() => buildNav(model), [model]);
-  const titles = useMemo(() => sheetTitles(model, nav), [model, nav]);
-  const [current, setCurrent] = useState(readHash);
-  const [focused, setFocused] = useState<string | null>(null);
+  const [route, setRoute] = useState(readRoute);
   const mainRef = useRef<HTMLElement>(null);
-
   useEffect(() => {
     const on = () => {
-      setCurrent(readHash());
-      setFocused(null);
+      setRoute(readRoute());
+      mainRef.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0 });
       mainRef.current?.scrollTo({ top: 0 });
     };
     addEventListener('hashchange', on);
     return () => removeEventListener('hashchange', on);
   }, []);
-
-  const go = (sheet: string) => {
-    const sh = sheetByName(model, sheet);
-    if (sh) location.hash = `/${encodeURIComponent(sh.name)}`;
+  const go = (r: Route) => (location.hash = href(r));
+  const goSheet = (sheet: string) => {
+    const p = ALL_PAGES.find((x) => x.sheets.some((s) => s.sheet === sheet));
+    if (p) go({ kind: 'page', id: p.id });
   };
 
-  const sheet = current ? sheetByName(model, current) : undefined;
-  // rows hidden in the saved file, except the ones the question rules control
-  const gated = useMemo(() => (sheet ? gatedRows(sheet.name) : new Set<number>()), [sheet]);
-  const closed = sheet ? gatedHiddenRows(sheet.name, session.raw) : new Set<number>();
-  const closedKey = [...closed].join(',');
-  const hiddenRows = useMemo(
-    () => new Set([...(sheet?.hiddenRows ?? []).filter((r) => !gated.has(r)), ...closed]),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [sheet, gated, closedKey],
-  );
-  const owner = sheet ? HELPER_OF[sheet.name] : undefined;
-  const parent = nav.find((n) => n.sheet === sheet?.name || n.children.some((c) => c.sheet === sheet?.name));
+  const active = ALL_PAGES.filter((p) => isActive(session, p));
+  const steps: Route[] = [{ kind: 'profile' }, ...active.map((p) => ({ kind: 'page', id: p.id }) as Route), { kind: 'results' }];
+  const idx = steps.findIndex((s) => href(s) === href(route));
+  const prev = idx > 0 ? steps[idx - 1] : null;
+  const next = idx >= 0 && idx < steps.length - 1 ? steps[idx + 1] : null;
+  const page = route.kind === 'page' ? ALL_PAGES.find((p) => p.id === route.id) : undefined;
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => setNavOpen(false), [route]);
+
+  if (route.kind === 'form') return <PrintableForm session={session} onBack={() => go({ kind: 'results' })} />;
 
   return (
     <div className="app">
       <header className="topbar">
-        <a className="brand" href="#">
-          <span className="brand-mark" aria-hidden="true">210</span>
+        <a className="brand" href="#/">
+          <span className="brand-mark" aria-hidden="true">
+            210
+          </span>
           <span>
             <strong>Renta abierta</strong>
             <small>Año gravable 2025 · personas naturales residentes</small>
@@ -63,178 +78,146 @@ export function Shell({ session }: { session: Session }) {
       </header>
 
       <div className="body">
-        <nav className="sidebar" aria-label="Secciones">
-          <SectionList nav={nav} current={sheet?.name} go={go} session={session} />
+        <nav className={`sidebar${navOpen ? ' open' : ''}`} aria-label="Pasos de la declaración">
+          <button type="button" className="nav-toggle" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>
+            <span>{idx >= 0 ? `Paso ${idx + 1} de ${steps.length}: ${stepTitle(route)}` : 'Secciones'}</span>
+            <span aria-hidden="true">{navOpen ? '▲' : '▼'}</span>
+          </button>
+          <div className="steps-wrap">
+            <Steps session={session} route={route} go={go} />
+          </div>
         </nav>
 
-        <main className="main" ref={mainRef}>
-          {!sheet ? (
-            <Home nav={nav} go={go} session={session} />
-          ) : (
-            <>
-              <div className="crumbs">
-                {owner && (
-                  <button type="button" className="link" onClick={() => go(owner)}>
-                    ← {titles.get(owner) ?? owner}
-                  </button>
-                )}
-                {!owner && parent && parent.sheet !== sheet.name && (
-                  <button type="button" className="link" onClick={() => go(parent.sheet)}>
-                    ← {parent.label}
-                  </button>
-                )}
-                {sheet.name !== FORM_SHEET && (
-                  <button type="button" className="link" onClick={() => go(FORM_SHEET)}>
-                    Ver formulario 210
-                  </button>
-                )}
-              </div>
-              <h1>{titles.get(sheet.name) ?? sheet.name}</h1>
-              <SectionIntro text={sectionIntro(model, sheet.name)} />
-              <HelperLinks session={session} sheet={sheet.name} go={go} titles={titles} />
-              {sheet.name === FORM_SHEET && <Pending session={session} go={go} />}
-              <SheetGrid
-                key={sheet.name}
-                session={session}
-                sheet={sheet}
-                hiddenRows={hiddenRows}
-                onFocusCell={setFocused}
-                onNavigate={go}
-                titles={titles}
-              />
-              <ExtrasPanel session={session} sheet={sheet.name} />
-            </>
+        <main className="main" ref={mainRef} tabIndex={-1}>
+          {route.kind === 'home' && <Home session={session} go={go} />}
+          {route.kind === 'profile' && <ProfilePage session={session} onDone={() => next && go(next)} />}
+          {route.kind === 'results' && <ResultsPage session={session} go={goSheet} openForm={() => go({ kind: 'form' })} />}
+          {route.kind === 'page' &&
+            (page ? (
+              <>
+                <p className="eyebrow">{page.group.title}</p>
+                <h1>{page.title}</h1>
+                <FormPage session={session} page={page} />
+              </>
+            ) : (
+              <p>Esta sección no existe.</p>
+            ))}
+          {route.kind !== 'home' && (
+            <nav className="pager" aria-label="Anterior y siguiente">
+              {prev ? (
+                <button type="button" className="ghost" onClick={() => go(prev)}>
+                  ← {stepTitle(prev)}
+                </button>
+              ) : (
+                <span />
+              )}
+              {next && (
+                <button type="button" className="primary" onClick={() => go(next)}>
+                  {stepTitle(next)} →
+                </button>
+              )}
+            </nav>
           )}
         </main>
-
-        {sheet && <HelpPanel session={session} sheetName={sheet.name} focused={focused} />}
       </div>
     </div>
   );
 }
 
-function filledCount(session: Session, sheet: string): number {
-  const prefix = `${sheet}!`;
-  return Object.keys(session.inputs).filter((k) => k.startsWith(prefix)).length;
+function stepTitle(r: Route): string {
+  if (r.kind === 'profile') return 'Perfil';
+  if (r.kind === 'results') return 'Resultado';
+  if (r.kind === 'page') return ALL_PAGES.find((p) => p.id === r.id)?.title ?? '';
+  return 'Inicio';
 }
 
-function SectionList({ nav, current, go, session }: { nav: NavNode[]; current?: string; go: (s: string) => void; session: Session }) {
-  const item = (n: NavNode, depth: number) => {
-    const count = filledCount(session, n.sheet);
-    return (
-      <li key={n.sheet}>
-        <button
-          type="button"
-          className={`nav-item depth-${depth}${n.sheet === current ? ' is-current' : ''}`}
-          aria-current={n.sheet === current ? 'page' : undefined}
-          onClick={() => go(n.sheet)}
-        >
-          <span>{n.label}</span>
-          {count > 0 && <span className="pill" title={`${count} casillas diligenciadas`}>{count}</span>}
-        </button>
-        {n.children.length > 0 && depth === 0 && (n.sheet === current || n.children.some((c) => c.sheet === current)) && (
-          <ul>{n.children.map((c) => item(c, depth + 1))}</ul>
-        )}
-      </li>
-    );
-  };
+function filledCount(session: Session, p: PageDef): number {
+  const keys = Object.keys(session.inputs);
+  return p.sheets.reduce((n, { sheet }) => n + keys.filter((k) => k.startsWith(`${sheet}!`)).length, 0);
+}
+
+function Steps({ session, route, go }: { session: Session; route: Route; go: (r: Route) => void }) {
+  const cur = href(route);
+  const item = (r: Route, label: string, count?: number) => (
+    <li key={href(r)}>
+      <a href={href(r)} className={`step${cur === href(r) ? ' is-current' : ''}`} aria-current={cur === href(r) ? 'page' : undefined}>
+        <span>{label}</span>
+        {!!count && <span className="pill">{count}</span>}
+      </a>
+    </li>
+  );
   return (
     <>
-      <ul className="nav-list">{nav.map((n) => item(n, 0))}</ul>
-      <button type="button" className={`nav-form${current === FORM_SHEET ? ' is-current' : ''}`} onClick={() => go(FORM_SHEET)}>
-        Formulario 210
+      <ul className="steps">{item({ kind: 'profile' }, 'Perfil')}</ul>
+      {GROUPS.map((g) => {
+        const pages = g.pages.filter((p) => isActive(session, p));
+        if (!pages.length) return null;
+        return (
+          <div key={g.id} className="step-group">
+            <h2>{g.title}</h2>
+            <ul className="steps">{pages.map((p) => item({ kind: 'page', id: p.id }, p.title, filledCount(session, p)))}</ul>
+          </div>
+        );
+      })}
+      <ul className="steps">{item({ kind: 'results' }, 'Resultado')}</ul>
+      <button type="button" className="link small" onClick={() => go({ kind: 'profile' })}>
+        ¿Falta una sección? Revise su perfil
       </button>
     </>
   );
 }
 
-function SectionIntro({ text }: { text: string }) {
-  if (!text) return null;
-  const [first, ...rest] = text.split(/\n\s*\n/);
-  return (
-    <details className="intro">
-      <summary>{first.length > 140 ? 'Instrucciones de la sección' : first}</summary>
-      <div className="prose">{(first.length > 140 ? [first, ...rest] : rest).map((p, i) => <p key={i}>{p}</p>)}</div>
-    </details>
-  );
-}
-
-function HelpPanel({ session, sheetName, focused }: { session: Session; sheetName: string; focused: string | null }) {
-  const sheet = sheetByName(session.model, sheetName)!;
-  const table = useMemo(() => helpTable(session.model, sheet), [session.model, sheet]);
-  const help = focused ? table.get(focused) : undefined;
-  const dv = focused ? validationAt(sheet, focused) : null;
-  const norms = help?.norms || sheetNorms(sheet);
-  return (
-    <aside className="help" aria-live="polite">
-      <h2>Ayuda</h2>
-      {help ? (
-        <>
-          {help.title && <h3>{help.title}</h3>}
-          <div className="prose">{help.text.split(/\n+/).map((p, i) => <p key={i}>{p}</p>)}</div>
-        </>
-      ) : (
-        <p className="muted">Seleccione una casilla para ver la explicación de la DIAN.</p>
-      )}
-      {dv?.prompt && (
-        <div className="note">
-          {dv.promptTitle && <strong>{dv.promptTitle}</strong>}
-          <p>{dv.prompt}</p>
-        </div>
-      )}
-      {norms && (
-        <>
-          <h2>Normas relacionadas</h2>
-          <div className="prose small">{norms.split(/\n+/).map((p, i) => <p key={i}>{p}</p>)}</div>
-        </>
-      )}
-    </aside>
-  );
-}
-
-function Home({ nav, go, session }: { nav: NavNode[]; go: (s: string) => void; session: Session }) {
-  const form = (a1: string) => formatValue(session.get(FORM_SHEET, a1), '"$"\\ #,##0');
-  const filled = Object.keys(session.inputs).length;
+function Home({ session, go }: { session: Session; go: (r: Route) => void }) {
+  const started = Object.keys(session.inputs).length > 0 || Object.keys(session.profile).length > 0;
   return (
     <div className="home">
-      <h1>Declaración de renta 2025, sin macros</h1>
+      <h1>Su declaración de renta 2025, sin Excel ni macros</h1>
       <p className="lede">
-        Una versión web del Programa Ayuda Renta 2025 (formulario 210) de la DIAN. Hace los mismos cálculos que el archivo de
-        Excel, pero funciona en cualquier sistema operativo y navegador, sin habilitar macros ni ActiveX.
+        Prepare el formulario 210 respondiendo preguntas sencillas. Los cálculos son los mismos del Programa Ayuda Renta 2025 de
+        la DIAN, y el resultado es el formulario 210 con los valores para copiar en los servicios en línea de la DIAN.
       </p>
       <ul className="facts">
         <li>
-          <strong>Sus datos no salen de este equipo.</strong> Los cálculos se hacen en su navegador y no se envían a ningún
-          servidor. Guarde un respaldo para continuar en otro equipo.
+          <strong>Sus datos no salen de este equipo.</strong> Todo se calcula en su navegador y no se envía a ningún servidor.
+          Guarde un respaldo para continuar en otro equipo.
         </li>
         <li>
-          <strong>No es un servicio de la DIAN.</strong> Úsela como ayuda para preparar la declaración y preséntela en los
-          servicios en línea de la DIAN.
+          <strong>No es un servicio de la DIAN.</strong> Es una herramienta independiente para preparar la declaración; la
+          presentación se hace en los servicios en línea de la DIAN.
         </li>
       </ul>
       <div className="start">
-        <button type="button" className="primary" onClick={() => go(nav[0].sheet)}>
-          {filled ? 'Continuar con la declaración' : 'Empezar con los datos generales'}
+        <button type="button" className="primary" onClick={() => go({ kind: 'profile' })}>
+          {started ? 'Continuar' : 'Empezar'}
         </button>
-        {filled > 0 && <span className="muted">{filled} casillas diligenciadas</span>}
+        {started && (
+          <button type="button" className="ghost" onClick={() => go({ kind: 'results' })}>
+            Ver resultado
+          </button>
+        )}
       </div>
-      <h2>Secciones</h2>
-      <ol className="sections">
-        {nav.map((n) => (
-          <li key={n.sheet}>
-            <button type="button" className="link" onClick={() => go(n.sheet)}>
-              {n.label}
-            </button>
-            {n.children.length > 0 && <span className="muted"> · {n.children.length} anexos</span>}
-          </li>
-        ))}
-      </ol>
-      {filled > 0 && <Pending session={session} go={go} />}
-      {filled > 0 && (
-        <p className="muted">
-          Patrimonio líquido calculado: <strong className="num">{form('AK14')}</strong>
-        </p>
-      )}
+      {started && <Pending session={session} go={() => go({ kind: 'page', id: 'datos-generales' })} />}
+    </div>
+  );
+}
+
+function PrintableForm({ session, onBack }: { session: Session; onBack: () => void }) {
+  const sheet = sheetByName(session.model, 'Formulario')!;
+  const hidden = useMemo(() => new Set(sheet.hiddenRows), [sheet]);
+  return (
+    <div className="print-page">
+      <div className="print-bar">
+        <button type="button" className="ghost" onClick={onBack}>
+          ← Volver al resultado
+        </button>
+        <button type="button" className="primary" onClick={() => window.print()}>
+          Imprimir o guardar PDF
+        </button>
+      </div>
+      <p className="print-note muted">
+        Formulario 210 tal como lo genera el Programa Ayuda Renta 2025. Úselo como guía para diligenciar el formulario oficial.
+      </p>
+      <SheetGrid session={session} sheet={sheet} hiddenRows={hidden} onFocusCell={() => undefined} onNavigate={() => undefined} titles={new Map()} />
     </div>
   );
 }
@@ -266,21 +249,41 @@ function Backups({ session }: { session: Session }) {
 
   return (
     <div className="backups">
-      <button type="button" onClick={save}>Guardar respaldo</button>
-      <button type="button" onClick={() => fileRef.current?.click()}>Abrir respaldo</button>
+      <button type="button" onClick={save}>
+        Guardar respaldo
+      </button>
+      <button type="button" onClick={() => fileRef.current?.click()}>
+        Abrir respaldo
+      </button>
       <input ref={fileRef} id="backup-file" type="file" accept="application/json,.json" hidden onChange={(e) => open(e.target.files?.[0])} />
       {confirming ? (
         <span className="confirm">
           ¿Borrar todos los datos de este navegador?
-          <button type="button" className="danger" onClick={() => { session.replace({}); setConfirming(false); setMsg('Datos borrados.'); }}>
+          <button
+            type="button"
+            className="danger"
+            onClick={() => {
+              session.replace({});
+              setConfirming(false);
+              setMsg('Datos borrados.');
+            }}
+          >
             Borrar
           </button>
-          <button type="button" onClick={() => setConfirming(false)}>Cancelar</button>
+          <button type="button" onClick={() => setConfirming(false)}>
+            Cancelar
+          </button>
         </span>
       ) : (
-        <button type="button" className="quiet" onClick={() => setConfirming(true)}>Borrar todo</button>
+        <button type="button" className="quiet" onClick={() => setConfirming(true)}>
+          Borrar todo
+        </button>
       )}
-      {msg && <span className="toast" role="status" onAnimationEnd={() => setMsg(null)}>{msg}</span>}
+      {msg && (
+        <span className="toast" role="status" onAnimationEnd={() => setMsg(null)}>
+          {msg}
+        </span>
+      )}
     </div>
   );
 }

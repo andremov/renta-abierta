@@ -1,0 +1,1057 @@
+[
+ {
+  "n": 1,
+  "concept": "Año",
+  "section": "Encabezado",
+  "group": "",
+  "cell": "F7",
+  "kind": "number",
+  "note": "literal \"2 0 2 5\" (fixed year)"
+ },
+ {
+  "n": 4,
+  "concept": "Número de formulario",
+  "section": "Encabezado",
+  "group": "",
+  "cell": "Z8",
+  "kind": "text",
+  "note": "literal \"BORRADOR FORMULARIO Versión 1.1\"; DIAN assigns real number"
+ },
+ {
+  "n": 5,
+  "concept": "Número de Identificación Tributaria (NIT)",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "E12",
+  "kind": "number"
+ },
+ {
+  "n": 6,
+  "concept": "DV",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "P12",
+  "kind": "number"
+ },
+ {
+  "n": 7,
+  "concept": "Primer apellido",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "Q12",
+  "kind": "text"
+ },
+ {
+  "n": 8,
+  "concept": "Segundo apellido",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "X12",
+  "kind": "text"
+ },
+ {
+  "n": 9,
+  "concept": "Primer nombre",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "AD12",
+  "kind": "text"
+ },
+ {
+  "n": 10,
+  "concept": "Otros nombres",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "AJ12",
+  "kind": "text"
+ },
+ {
+  "n": 12,
+  "concept": "Cód. Dirección seccional",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "AP12",
+  "kind": "text"
+ },
+ {
+  "n": 24,
+  "concept": "Actividad económica principal",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "J13",
+  "kind": "text"
+ },
+ {
+  "n": 25,
+  "concept": "Cód",
+  "section": "Datos del declarante",
+  "group": "Si es una corrección indique",
+  "cell": null,
+  "kind": "text",
+  "note": "label box O13:Q13 only; no separate value cell in workbook (draft is never a correction)"
+ },
+ {
+  "n": 26,
+  "concept": "No. Formulario anterior",
+  "section": "Datos del declarante",
+  "group": "Si es una corrección indique",
+  "cell": "X13",
+  "kind": "text",
+  "note": "empty box X13:AA13 next to label R13:V13; no formula (workbook does not model corrections)"
+ },
+ {
+  "n": 27,
+  "concept": "Fracción año gravable siguiente",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "AF13",
+  "kind": "text",
+  "note": "empty single-cell box AF13 next to label AB13:AE13; no formula"
+ },
+ {
+  "n": 28,
+  "concept": "Uno por ciento (1%) de compras con factura electrónica",
+  "section": "Datos del declarante",
+  "group": "",
+  "cell": "AN13",
+  "kind": "money"
+ },
+ {
+  "n": 29,
+  "concept": "Total patrimonio",
+  "section": "Patrimonio",
+  "group": "",
+  "cell": "L14",
+  "kind": "money"
+ },
+ {
+  "n": 30,
+  "concept": "Deudas",
+  "section": "Patrimonio",
+  "group": "",
+  "cell": "Z14",
+  "kind": "money"
+ },
+ {
+  "n": 31,
+  "concept": "Total patrimonio líquido (29 - 30)",
+  "section": "Patrimonio",
+  "group": "",
+  "cell": "AK14",
+  "kind": "money"
+ },
+ {
+  "n": 32,
+  "concept": "Ingresos brutos — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L16",
+  "kind": "money"
+ },
+ {
+  "n": 33,
+  "concept": "Ingresos no constitutivos de renta — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L18",
+  "kind": "money"
+ },
+ {
+  "n": 34,
+  "concept": "Renta líquida — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L20",
+  "kind": "money"
+ },
+ {
+  "n": 35,
+  "concept": "Rentas exentas: Aportes voluntarios AFC, FVP y AVC — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L22",
+  "kind": "money"
+ },
+ {
+  "n": 36,
+  "concept": "Rentas exentas: Otras rentas exentas — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L23",
+  "kind": "money"
+ },
+ {
+  "n": 37,
+  "concept": "Rentas exentas: Total rentas exentas — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L24",
+  "kind": "money"
+ },
+ {
+  "n": 38,
+  "concept": "Deducciones imputables: Intereses de vivienda — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L25",
+  "kind": "money"
+ },
+ {
+  "n": 39,
+  "concept": "Deducciones imputables: Otras deducciones imputables — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L26",
+  "kind": "money"
+ },
+ {
+  "n": 40,
+  "concept": "Deducciones imputables: Total deducciones imputables — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L27",
+  "kind": "money"
+ },
+ {
+  "n": 41,
+  "concept": "Rentas exentas y/o deducciones imputables (Limitadas) — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L28",
+  "kind": "money"
+ },
+ {
+  "n": 42,
+  "concept": "Renta líquida ordinaria — Rentas de trabajo",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo",
+  "cell": "L32",
+  "kind": "money"
+ },
+ {
+  "n": 43,
+  "concept": "Ingresos brutos — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T16",
+  "kind": "money"
+ },
+ {
+  "n": 44,
+  "concept": "Ingresos no constitutivos de renta — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T18",
+  "kind": "money"
+ },
+ {
+  "n": 45,
+  "concept": "Costos y gastos procedentes — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T19",
+  "kind": "money"
+ },
+ {
+  "n": 46,
+  "concept": "Renta líquida — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T20",
+  "kind": "money"
+ },
+ {
+  "n": 47,
+  "concept": "Rentas exentas: Aportes voluntarios AFC, FVP y AVC — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T22",
+  "kind": "money"
+ },
+ {
+  "n": 48,
+  "concept": "Rentas exentas: Otras rentas exentas — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T23",
+  "kind": "money"
+ },
+ {
+  "n": 49,
+  "concept": "Rentas exentas: Total rentas exentas — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T24",
+  "kind": "money"
+ },
+ {
+  "n": 50,
+  "concept": "Deducciones imputables: Intereses de vivienda — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T25",
+  "kind": "money"
+ },
+ {
+  "n": 51,
+  "concept": "Deducciones imputables: Otras deducciones imputables — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T26",
+  "kind": "money"
+ },
+ {
+  "n": 52,
+  "concept": "Deducciones imputables: Total deducciones imputables — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T27",
+  "kind": "money"
+ },
+ {
+  "n": 53,
+  "concept": "Rentas exentas y/o deducciones imputables (Limitadas) — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T28",
+  "kind": "money"
+ },
+ {
+  "n": 54,
+  "concept": "Renta líquida ordinaria del ejercicio — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T29",
+  "kind": "money"
+ },
+ {
+  "n": 55,
+  "concept": "Pérdida líquida del ejercicio — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T30",
+  "kind": "money"
+ },
+ {
+  "n": 56,
+  "concept": "Compensaciones por pérdidas — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T31",
+  "kind": "money"
+ },
+ {
+  "n": 57,
+  "concept": "Renta líquida ordinaria — Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "section": "Cédula general",
+  "group": "Rentas de trabajo que no provengan de una relación laboral o legal y reglamentaria",
+  "cell": "T32",
+  "kind": "money"
+ },
+ {
+  "n": 58,
+  "concept": "Ingresos brutos — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC16",
+  "kind": "money"
+ },
+ {
+  "n": 59,
+  "concept": "Ingresos no constitutivos de renta — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC18",
+  "kind": "money"
+ },
+ {
+  "n": 60,
+  "concept": "Costos y gastos procedentes — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC19",
+  "kind": "money"
+ },
+ {
+  "n": 61,
+  "concept": "Renta líquida — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC20",
+  "kind": "money"
+ },
+ {
+  "n": 62,
+  "concept": "Rentas líquidas pasivas - ECE — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC21",
+  "kind": "money"
+ },
+ {
+  "n": 63,
+  "concept": "Rentas exentas: Aportes voluntarios AFC, FVP y AVC — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC22",
+  "kind": "money"
+ },
+ {
+  "n": 64,
+  "concept": "Rentas exentas: Otras rentas exentas — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC23",
+  "kind": "money"
+ },
+ {
+  "n": 65,
+  "concept": "Rentas exentas: Total rentas exentas — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC24",
+  "kind": "money"
+ },
+ {
+  "n": 66,
+  "concept": "Deducciones imputables: Intereses de vivienda — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC25",
+  "kind": "money"
+ },
+ {
+  "n": 67,
+  "concept": "Deducciones imputables: Otras deducciones imputables — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC26",
+  "kind": "money"
+ },
+ {
+  "n": 68,
+  "concept": "Deducciones imputables: Total deducciones imputables — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC27",
+  "kind": "money"
+ },
+ {
+  "n": 69,
+  "concept": "Rentas exentas y/o deducciones imputables (Limitadas) — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC28",
+  "kind": "money"
+ },
+ {
+  "n": 70,
+  "concept": "Renta líquida ordinaria del ejercicio — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC29",
+  "kind": "money"
+ },
+ {
+  "n": 71,
+  "concept": "Pérdida líquida del ejercicio — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC30",
+  "kind": "money"
+ },
+ {
+  "n": 72,
+  "concept": "Compensaciones por pérdidas — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC31",
+  "kind": "money"
+ },
+ {
+  "n": 73,
+  "concept": "Renta líquida ordinaria — Rentas de capital",
+  "section": "Cédula general",
+  "group": "Rentas de capital",
+  "cell": "AC32",
+  "kind": "money"
+ },
+ {
+  "n": 74,
+  "concept": "Ingresos brutos — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ16",
+  "kind": "money"
+ },
+ {
+  "n": 75,
+  "concept": "Devoluciones, rebajas y descuentos — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ17",
+  "kind": "money"
+ },
+ {
+  "n": 76,
+  "concept": "Ingresos no constitutivos de renta — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ18",
+  "kind": "money"
+ },
+ {
+  "n": 77,
+  "concept": "Costos y gastos procedentes — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ19",
+  "kind": "money"
+ },
+ {
+  "n": 78,
+  "concept": "Renta líquida — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ20",
+  "kind": "money"
+ },
+ {
+  "n": 79,
+  "concept": "Rentas líquidas pasivas - ECE — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ21",
+  "kind": "money"
+ },
+ {
+  "n": 80,
+  "concept": "Rentas exentas: Aportes voluntarios AFC, FVP y AVC — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ22",
+  "kind": "money"
+ },
+ {
+  "n": 81,
+  "concept": "Rentas exentas: Otras rentas exentas — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ23",
+  "kind": "money"
+ },
+ {
+  "n": 82,
+  "concept": "Rentas exentas: Total rentas exentas — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ24",
+  "kind": "money"
+ },
+ {
+  "n": 83,
+  "concept": "Deducciones imputables: Intereses de vivienda — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ25",
+  "kind": "money"
+ },
+ {
+  "n": 84,
+  "concept": "Deducciones imputables: Otras deducciones imputables — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ26",
+  "kind": "money"
+ },
+ {
+  "n": 85,
+  "concept": "Deducciones imputables: Total deducciones imputables — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ27",
+  "kind": "money"
+ },
+ {
+  "n": 86,
+  "concept": "Rentas exentas y/o deducciones imputables (Limitadas) — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ28",
+  "kind": "money"
+ },
+ {
+  "n": 87,
+  "concept": "Renta líquida ordinaria del ejercicio — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ29",
+  "kind": "money"
+ },
+ {
+  "n": 88,
+  "concept": "Pérdida líquida del ejercicio — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ30",
+  "kind": "money"
+ },
+ {
+  "n": 89,
+  "concept": "Compensaciones por pérdidas — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ31",
+  "kind": "money"
+ },
+ {
+  "n": 90,
+  "concept": "Renta líquida ordinaria — Rentas no laborales",
+  "section": "Cédula general",
+  "group": "Rentas no laborales",
+  "cell": "AJ32",
+  "kind": "money"
+ },
+ {
+  "n": 91,
+  "concept": "Renta líquida cédula general (41+42+53+57+69+73+86+90)",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "I33",
+  "kind": "money"
+ },
+ {
+  "n": 92,
+  "concept": "Rentas exentas y deducciones imputables (limitadas)(28+41+53+69+86+139)",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "S33",
+  "kind": "money"
+ },
+ {
+  "n": 93,
+  "concept": "Renta líquida ordinaria cédula general (91 - 92)",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "AE33",
+  "kind": "money"
+ },
+ {
+  "n": 94,
+  "concept": "Compensaciones por pérdidas año gravable 2018 y anteriores",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "AN33",
+  "kind": "money"
+ },
+ {
+  "n": 95,
+  "concept": "Compensaciones por exceso de renta presuntiva",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "I34",
+  "kind": "money"
+ },
+ {
+  "n": 96,
+  "concept": "Rentas gravables",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "S34",
+  "kind": "money"
+ },
+ {
+  "n": 97,
+  "concept": "Renta líquida gravable cédula general (93 - 94 - 95 + 96)",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "AE34",
+  "kind": "money"
+ },
+ {
+  "n": 98,
+  "concept": "Renta presuntiva",
+  "section": "Cédula general",
+  "group": "",
+  "cell": "AN34",
+  "kind": "money"
+ },
+ {
+  "n": 99,
+  "concept": "Ingresos brutos por rentas de pensiones del país y del exterior",
+  "section": "Cédula de pensiones",
+  "group": "",
+  "cell": "P35",
+  "kind": "money"
+ },
+ {
+  "n": 100,
+  "concept": "Ingresos no constitutivos de renta",
+  "section": "Cédula de pensiones",
+  "group": "",
+  "cell": "P36",
+  "kind": "money"
+ },
+ {
+  "n": 101,
+  "concept": "Renta líquida (99 - 100)",
+  "section": "Cédula de pensiones",
+  "group": "",
+  "cell": "P37",
+  "kind": "money"
+ },
+ {
+  "n": 102,
+  "concept": "Rentas exentas de pensiones",
+  "section": "Cédula de pensiones",
+  "group": "",
+  "cell": "P38",
+  "kind": "money"
+ },
+ {
+  "n": 103,
+  "concept": "Renta líquida cedular de pensiones (101 - 102)",
+  "section": "Cédula de pensiones",
+  "group": "",
+  "cell": "P39",
+  "kind": "money"
+ },
+ {
+  "n": 104,
+  "concept": "Dividendos y/o participaciones 2016 y anteriores, y otros",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P40",
+  "kind": "money"
+ },
+ {
+  "n": 105,
+  "concept": "Ingresos no constitutivos de renta",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P41",
+  "kind": "money"
+ },
+ {
+  "n": 106,
+  "concept": "Renta líquida ordinaria año 2016 y anteriores (104 - 105)",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P42",
+  "kind": "money"
+ },
+ {
+  "n": 107,
+  "concept": "1ª Subcédula año 2017 y siguientes numeral 3 art. 49 del E.T.",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P43",
+  "kind": "money"
+ },
+ {
+  "n": 108,
+  "concept": "2ª Subcédula año 2017 y siguientes parágrafo 2 art. 49 del E.T.",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P44",
+  "kind": "money"
+ },
+ {
+  "n": 109,
+  "concept": "Dividendos y participaciones recibidas del exterior",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P45",
+  "kind": "money"
+ },
+ {
+  "n": 110,
+  "concept": "Rentas exentas de la casilla 109",
+  "section": "Cédula de dividendos y participaciones",
+  "group": "",
+  "cell": "P46",
+  "kind": "money"
+ },
+ {
+  "n": 111,
+  "concept": "Renta líquida gravable (Cédula general o Renta presuntiva, de pensiones y de dividendos y participaciones, art. 241 E.T. (base casillas 97 o 98 + 103 + 107 + 108 - 118)",
+  "section": "Renta líquida gravable",
+  "group": "",
+  "cell": "P47",
+  "kind": "money"
+ },
+ {
+  "n": 112,
+  "concept": "Ingresos por ganancias ocasionales del país y del exterior",
+  "section": "Ganancias ocasionales",
+  "group": "",
+  "cell": "P48",
+  "kind": "money"
+ },
+ {
+  "n": 113,
+  "concept": "Costos por ganancias ocasionales",
+  "section": "Ganancias ocasionales",
+  "group": "",
+  "cell": "P49",
+  "kind": "money"
+ },
+ {
+  "n": 114,
+  "concept": "Ganancias ocasionales no gravadas y exentas",
+  "section": "Ganancias ocasionales",
+  "group": "",
+  "cell": "P50",
+  "kind": "money"
+ },
+ {
+  "n": 115,
+  "concept": "Ganancias ocasionales gravables",
+  "section": "Ganancias ocasionales",
+  "group": "",
+  "cell": "P51",
+  "kind": "money"
+ },
+ {
+  "n": 116,
+  "concept": "Cédula general, de pensiones y de dividendos y participaciones",
+  "section": "Liquidación privada",
+  "group": "Impuesto sobre las rentas líquidas gravables",
+  "cell": "AK35",
+  "kind": "money"
+ },
+ {
+  "n": 117,
+  "concept": "Renta presuntiva, de pensiones y de dividendos y participaciones",
+  "section": "Liquidación privada",
+  "group": "Impuesto sobre las rentas líquidas gravables",
+  "cell": "AK36",
+  "kind": "money"
+ },
+ {
+  "n": 118,
+  "concept": "Por dividendos y participaciones año 2017 y siguientes, 2ª Subcédula (Art 240 E.T.)",
+  "section": "Liquidación privada",
+  "group": "Impuesto sobre las rentas líquidas gravables",
+  "cell": "AK37",
+  "kind": "money"
+ },
+ {
+  "n": 119,
+  "concept": "Por dividendos y/o participaciones año 2016 (base casilla 106)",
+  "section": "Liquidación privada",
+  "group": "Impuesto sobre las rentas líquidas gravables",
+  "cell": "AK38",
+  "kind": "money"
+ },
+ {
+  "n": 120,
+  "concept": "Por dividendos y participaciones recibidas del exterior (base casillas 109 - 110)",
+  "section": "Liquidación privada",
+  "group": "Impuesto sobre las rentas líquidas gravables",
+  "cell": "AK39",
+  "kind": "money"
+ },
+ {
+  "n": 121,
+  "concept": "Total impuesto sobre las rentas liquidas gravables (116 + 117 + 118 + 119 + 120 )",
+  "section": "Liquidación privada",
+  "group": "Impuesto sobre las rentas líquidas gravables",
+  "cell": "AK40",
+  "kind": "money"
+ },
+ {
+  "n": 122,
+  "concept": "Impuestos pagados en el exterior",
+  "section": "Liquidación privada",
+  "group": "Descuentos tributarios",
+  "cell": "AE41",
+  "kind": "money"
+ },
+ {
+  "n": 123,
+  "concept": "Donaciones",
+  "section": "Liquidación privada",
+  "group": "Descuentos tributarios",
+  "cell": "AN41",
+  "kind": "money"
+ },
+ {
+  "n": 124,
+  "concept": "Dividendos, participaciones y otros",
+  "section": "Liquidación privada",
+  "group": "Descuentos tributarios",
+  "cell": "AE42",
+  "kind": "money"
+ },
+ {
+  "n": 125,
+  "concept": "Total descuentos tributarios (122+ 123 + 124)",
+  "section": "Liquidación privada",
+  "group": "Descuentos tributarios",
+  "cell": "AN42",
+  "kind": "money"
+ },
+ {
+  "n": 126,
+  "concept": "Impuesto neto de renta (121- 125)",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK43",
+  "kind": "money"
+ },
+ {
+  "n": 127,
+  "concept": "Impuesto de ganancias ocasionales",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK44",
+  "kind": "money"
+ },
+ {
+  "n": 128,
+  "concept": "Descuento por impuestos pagados en el exterior por ganancias ocasionales",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK45",
+  "kind": "money"
+ },
+ {
+  "n": 129,
+  "concept": "Total impuesto a cargo (126 + 127 -128)",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK46",
+  "kind": "money"
+ },
+ {
+  "n": 130,
+  "concept": "Anticipo renta liquidado año gravable anterior",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK47",
+  "kind": "money"
+ },
+ {
+  "n": 131,
+  "concept": "Saldo a favor del año gravable anterior sin solicitud de devolución y/o compensación",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK48",
+  "kind": "money"
+ },
+ {
+  "n": 132,
+  "concept": "Retenciones año gravable a declarar",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK49",
+  "kind": "money"
+ },
+ {
+  "n": 133,
+  "concept": "Anticipo renta por el año gravable siguiente",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AK50",
+  "kind": "money"
+ },
+ {
+  "n": 134,
+  "concept": "Saldo a pagar por impuesto (129+133-130-131-132)",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "I52",
+  "kind": "money"
+ },
+ {
+  "n": 135,
+  "concept": "Sanciones",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "U52",
+  "kind": "money"
+ },
+ {
+  "n": 136,
+  "concept": "Total saldo a pagar (129+133 +135 -130-131-132)",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AE52",
+  "kind": "money"
+ },
+ {
+  "n": 137,
+  "concept": "Total saldo a favor (130+131+132-129-133-135)",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AN52",
+  "kind": "money"
+ },
+ {
+  "n": 138,
+  "concept": "Número de dependientes económicos",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "I53",
+  "kind": "number"
+ },
+ {
+  "n": 139,
+  "concept": "Adición por dependientes a la casilla 92",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "Q53",
+  "kind": "money"
+ },
+ {
+  "n": 140,
+  "concept": "Ud. superó tope indicativo art. 336-1 del E.T., marque X",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AE53",
+  "kind": "text"
+ },
+ {
+  "n": 141,
+  "concept": "Aporte voluntario",
+  "section": "Liquidación privada",
+  "group": "",
+  "cell": "AN53",
+  "kind": "money"
+ },
+ {
+  "n": 980,
+  "concept": "Pago total",
+  "section": "Firma y pago",
+  "group": "",
+  "cell": "AI93",
+  "kind": "money"
+ },
+ {
+  "n": 981,
+  "concept": "Cód. Representación",
+  "section": "Firma y pago",
+  "group": "",
+  "cell": "I92",
+  "kind": "text"
+ },
+ {
+  "n": 996,
+  "concept": "Espacio para el número interno de la DIAN / Adhesivo",
+  "section": "Firma y pago",
+  "group": "",
+  "cell": null,
+  "kind": "text",
+  "note": "printed box AB95:AQ95, filled by DIAN"
+ },
+ {
+  "n": 997,
+  "concept": "Espacio exclusivo para el sello de la entidad recaudadora",
+  "section": "Firma y pago",
+  "group": "",
+  "cell": null,
+  "kind": "text",
+  "note": "printed box O92:AA93, filled by bank"
+ }
+]
