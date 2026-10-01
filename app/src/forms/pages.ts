@@ -21,7 +21,8 @@ export interface PageDef {
   title: string;
   /** one-line description shown in lists */
   blurb: string;
-  sheets: { sheet: string; title?: string }[];
+  /** annexes; `when` hides one unless a question enabling it is answered yes (or it has data) */
+  sheets: { sheet: string; title?: string; when?: string[] }[];
   /** shown when any of these questions is answered yes; omitted = always */
   when?: string[];
 }
@@ -33,7 +34,15 @@ export interface GroupDef {
 }
 
 export const QUESTIONS: Question[] = [
+  { id: 'dependientes', text: '¿Tiene dependientes económicos?', hint: 'Hijos, cónyuge, padres o hermanos que dependen económicamente de usted.' },
+  { id: 'signatario', text: '¿Otra persona firma la declaración en su nombre?', hint: 'Apoderado o representante.', advanced: true },
   { id: 'salario', text: '¿Recibió salario o pagos de un empleador?', hint: 'Contrato laboral: salario, prestaciones, cesantías, gastos de representación.' },
+  {
+    id: 'otros_laborales',
+    text: '¿Recibió otros pagos laborales, como indemnizaciones, bonificaciones por retiro o primas especiales?',
+    hint: 'Pagos distintos del salario: indemnizaciones, seguros por muerte, primas de costo de vida, apoyos económicos.',
+  },
+  { id: 'alimentacion', text: '¿Su empleador pagó a terceros por su alimentación?', hint: 'Pagos a terceros por concepto de alimentación del trabajador o su familia.', advanced: true },
   { id: 'independiente', text: '¿Recibió honorarios o ingresos por servicios como independiente?', hint: 'Contratos de prestación de servicios, comisiones, actividad propia.' },
   { id: 'pension', text: '¿Recibió una pensión?' },
   { id: 'intereses', text: '¿Recibió intereses o rendimientos financieros?', hint: 'CDT, cuentas de ahorro, fondos, bonos.' },
@@ -128,8 +137,8 @@ export const GROUPS: GroupDef[] = [
           { sheet: 'Datos_Salarios', title: 'Preguntas sobre el salario' },
           { sheet: 'Datos_Cesantias', title: 'Preguntas sobre cesantías' },
           { sheet: 'Datos_Gastos_Rep', title: 'Preguntas sobre gastos de representación' },
-          { sheet: 'Datos_Otros_Ingresos', title: 'Otros ingresos laborales' },
-          { sheet: 'Pagos_terceros', title: 'Pagos a terceros por alimentación' },
+          { sheet: 'Datos_Otros_Ingresos', title: 'Otros ingresos laborales', when: ['otros_laborales'] },
+          { sheet: 'Pagos_terceros', title: 'Pagos a terceros por alimentación', when: ['alimentacion'] },
         ],
       },
       {
