@@ -60,6 +60,11 @@ export interface FormSpec {
 
 const HELPER_COL = 25; // column Z onward: help lookups and dropdown sources
 
+/** Section breaks the sheet does not mark with a plain label (its heading is a formula). 1-based rows. */
+const EXTRA_HEADINGS: Record<string, Record<number, string>> = {
+  DatosGenerales: { 33: 'Dependiente económico 2', 51: 'Dependiente económico 5' },
+};
+
 type Item = { c: number; kind: 'L' | 'I' | 'F'; a1: string; text: string; cell?: ModelCell; extra?: ExtraInput };
 
 const tidy = (s: string) =>
@@ -208,9 +213,11 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
   };
 
   let firstTitle = true;
+  const extraHeadings = EXTRA_HEADINGS[sh.name] ?? {};
   for (let idx = 0; idx < order.length; idx++) {
     const r = order[idx];
     const list = rows.get(r)!;
+    if (extraHeadings[r + 1]) sections.push({ title: extraHeadings[r + 1], blocks: [] });
     const t0 = tableOf.get(r);
     if (t0 !== undefined) {
       if (t0 !== r) continue;
@@ -259,7 +266,7 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
         firstTitle = false;
         continue; // sheet title, e.g. "2.1.3. Efectivo, bancos…" (we show our own title)
       }
-      if (text.length > 160) {
+      if (text.length > 160 || /^(advertencia|nota|importante)\b/i.test(text) || text.length > 120) {
         if (!intro && sections.length === 1 && !cur().blocks.length) intro = text;
         else cur().blocks.push({ t: 'text', text });
       } else if (/^totales?$/i.test(text)) {
@@ -296,6 +303,8 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
 }
 
 function cleanHeading(s: string): string {
+  const dep = /dependiente econ[oó]mico\s*#\s*(\d)/i.exec(s);
+  if (dep) return `Dependiente económico ${dep[1]}`;
   return s.replace(/^\s*(\d+(\.\d+)*\.?|[a-z]\.)\s+/i, '').replace(/\s+—\s+$/, '');
 }
 
@@ -308,7 +317,7 @@ function inferType(nf: string | undefined, dv: Validation | null, label: string)
     return 'select';
   }
   if (/\(marque\s*x\)|marque \(x\)/i.test(label)) return 'check';
-  if (/nit|identificaci[oó]n|c\.c\./i.test(label) && !/valor/i.test(label)) return 'id';
+  if (/\bnit\b|identificaci[oó]n|c\.c\./i.test(label) && !/valor/i.test(label)) return 'id';
   if (/nombre|raz[oó]n social|descripci[oó]n|direcci[oó]n|entidad|concepto|ubicaci[oó]n|pa[ií]s|ciudad|apellido|sociedad/i.test(label) && !(nf && nf.includes('$')))
     return 'text';
   if (dv?.type === 'date' || isDateFormat(nf)) return 'date';

@@ -11,7 +11,7 @@ const external = [];
 page.on('request', (r) => !r.url().startsWith(base) && !r.url().startsWith('data:') && external.push(r.url()));
 
 await page.goto(`${base}#/p/datos-generales`);
-await page.waitForSelector('.form-page');
+await page.waitForSelector('.step-body');
 const nit = page.getByLabel('Número de Identificación Tributaria (NIT)').first();
 await nit.fill('80123456');
 await nit.press('Enter');

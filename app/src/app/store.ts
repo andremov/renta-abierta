@@ -22,6 +22,8 @@ export class Session {
   /** inputs that currently count as blank (hidden wizard rows, pop-up values whose trigger is off) */
   inactive = new Set<string>();
   profile: Profile = {};
+  /** transient UI state (e.g. how many repeated items the person opened); not saved */
+  ui: Record<string, number> = {};
   private listeners = new Set<() => void>();
 
   constructor(readonly model: Model) {
@@ -95,6 +97,11 @@ export class Session {
       }
     this.applyAll();
     this.persist();
+    this.emit();
+  }
+
+  setUi(key: string, value: number) {
+    this.ui[key] = value;
     this.emit();
   }
 

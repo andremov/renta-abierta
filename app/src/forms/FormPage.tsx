@@ -1,4 +1,4 @@
-// Renders one page of the questionnaire-driven form from generated sheet specs.
+// Renders wizard steps from generated sheet specs.
 import { useState } from 'react';
 import type { Model } from '../engine/workbook';
 import { parseA1, toA1, type Scalar } from '../engine/types';
@@ -7,16 +7,10 @@ import { gatedHiddenRows, type ExtraInput } from '../app/rules';
 import { helpTable, sheetByName, type CellHelp } from '../app/nav';
 import { validationAt } from '../app/validation';
 import { formatValue } from '../app/format';
-import { buildSpec, filledRows, sectionHasData, type Block, type Field, type FormSpec, type RepeatGroup, type Section, type TableColumn } from './spec';
+import { filledRows, type Block, type Field, type Section, type TableColumn } from './spec';
+import type { Step } from './steps';
 import { CalcRow, FieldInput } from './Field';
-import type { PageDef } from './pages';
 
-const specCache = new Map<string, FormSpec>();
-export function specFor(model: Model, sheet: string, title: string): FormSpec {
-  let s = specCache.get(sheet);
-  if (!s) specCache.set(sheet, (s = buildSpec(model, sheetByName(model, sheet)!, title)));
-  return s;
-}
 const helpCache = new Map<string, Map<string, CellHelp>>();
 function helpFor(model: Model, sheet: string) {
   let h = helpCache.get(sheet);
@@ -31,28 +25,20 @@ interface Ctx {
   help: Map<string, CellHelp>;
 }
 
-export function FormPage({ session, page }: { session: Session; page: PageDef }) {
+/** One wizard step: a section, a repeated item or a summary of totals. */
+export function StepView({ session, step }: { session: Session; step: Step }) {
+  const ctx: Ctx = { session, sheet: step.sheet, hidden: gatedHiddenRows(step.sheet, session.raw), help: helpFor(session.model, step.sheet) };
+  const r = step.repeat;
   return (
-    <div className="form-page">
-      {page.sheets.map(({ sheet, title }, i) => (
-        <SheetForm key={sheet} session={session} sheet={sheet} title={i > 0 && title !== page.title ? title : undefined} />
-      ))}
+    <div className="step-body">
+      {step.intro && <Intro text={step.intro} />}
+      <SectionView section={step.section} ctx={ctx} titleOverride="" />
+      {r && r.index === r.visible - 1 && r.visible < r.max && (
+        <button type="button" className="add-btn" onClick={() => session.setUi(r.key, r.visible + 1)}>
+          + Agregar otro {r.noun}
+        </button>
+      )}
     </div>
-  );
-}
-
-function SheetForm({ session, sheet, title }: { session: Session; sheet: string; title?: string }) {
-  const spec = specFor(session.model, sheet, title ?? sheet);
-  const hidden = gatedHiddenRows(sheet, session.raw);
-  const ctx: Ctx = { session, sheet, hidden, help: helpFor(session.model, sheet) };
-  const visibleParts = spec.parts.filter((p) => ('t' in p ? true : sectionVisible(p, ctx)));
-  if (!visibleParts.length) return null;
-  return (
-    <section className="sheet-form" aria-label={title}>
-      {title && <h2 className="sheet-title">{title}</h2>}
-      {spec.intro && <Intro text={spec.intro} />}
-      {visibleParts.map((p, i) => ('t' in p ? <Repeat key={i} group={p} ctx={ctx} /> : <SectionView key={i} section={p} ctx={ctx} />))}
-    </section>
   );
 }
 
@@ -77,9 +63,6 @@ const fieldVisible = (f: Field, ctx: Ctx) => {
   return true;
 };
 
-function sectionVisible(s: Section, ctx: Ctx) {
-  return s.blocks.some((b) => (b.t === 'fields' ? b.fields.some((f) => fieldVisible(f, ctx) && (f.kind === 'input' || hasValue(ctx, f.a1))) : b.t === 'table'));
-}
 
 function hasValue(ctx: Ctx, a1: string) {
   const v = ctx.session.get(ctx.sheet, a1);
@@ -257,26 +240,3 @@ function TableCell({ col, r, firstRow, ctx }: { col: TableColumn; r: number; fir
     />
   );
 }
-
-// ----------------------------------------------------------------- repeats
-
-function Repeat({ group, ctx }: { group: RepeatGroup; ctx: Ctx }) {
-  const filled = group.items.filter((s) => sectionHasData(s, ctx.session.raw));
-  const [opened, setOpened] = useState(0);
-  const count = Math.min(group.items.length, Math.max(1, group.items.indexOf(filled[filled.length - 1]) + 1, opened));
-  const shown = group.items.slice(0, count);
-  return (
-    <div className="repeat">
-      {shown.map((s, i) => (
-        <SectionView key={i} section={s} ctx={ctx} titleOverride={`${capitalize(group.noun)} ${i + 1}`} />
-      ))}
-      {count < group.items.length && (
-        <button type="button" className="add-btn" onClick={() => setOpened(count + 1)}>
-          + Agregar otro {group.noun}
-        </button>
-      )}
-    </div>
-  );
-}
-
-const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);

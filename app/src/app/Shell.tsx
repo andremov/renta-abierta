@@ -1,5 +1,5 @@
 // App chrome: header, step navigation, routing between questionnaire, form pages and results.
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import type { Session } from './store';
 import { useSession } from './store';
 import { sheetByName } from './nav';
@@ -7,24 +7,47 @@ import { buildLayout } from './layout';
 import { marginBoxCss, parseHeaderFooter } from './headerFooter';
 import type { ModelSheet } from '../engine/workbook';
 import { GROUPS, ALL_PAGES, type PageDef } from '../forms/pages';
-import { FormPage } from '../forms/FormPage';
+import { StepView } from '../forms/FormPage';
+import { pageSteps, stepHasData, type Step } from '../forms/steps';
 import { ProfilePage } from '../forms/Profile';
 import { ResultsPage } from '../forms/Results';
 import { SheetGrid } from './SheetGrid';
 import { Pending } from './Checks';
 
-type Route = { kind: 'home' } | { kind: 'profile' } | { kind: 'page'; id: string } | { kind: 'results' } | { kind: 'form' };
+type Route =
+  | { kind: 'home' }
+  | { kind: 'profile' }
+  | { kind: 'page'; id: string; step?: string }
+  | { kind: 'results' }
+  | { kind: 'form' };
 
 function readRoute(): Route {
-  const h = decodeURIComponent(location.hash.replace(/^#\/?/, ''));
+  const h = location.hash.replace(/^#\/?/, '');
   if (h === 'perfil') return { kind: 'profile' };
   if (h === 'resultado') return { kind: 'results' };
   if (h === 'formulario') return { kind: 'form' };
-  if (h.startsWith('p/')) return { kind: 'page', id: h.slice(2) };
+  if (h.startsWith('p/')) {
+    const [id, step] = h.slice(2).split('/');
+    return { kind: 'page', id: decodeURIComponent(id), step: step ? decodeURIComponent(step) : undefined };
+  }
   return { kind: 'home' };
 }
-const href = (r: Route) =>
-  r.kind === 'home' ? '#/' : r.kind === 'profile' ? '#/perfil' : r.kind === 'results' ? '#/resultado' : r.kind === 'form' ? '#/formulario' : `#/p/${r.id}`;
+
+function href(r: Route): string {
+  switch (r.kind) {
+    case 'home':
+      return '#/';
+    case 'profile':
+      return '#/perfil';
+    case 'results':
+      return '#/resultado';
+    case 'form':
+      return '#/formulario';
+    case 'page':
+      return `#/p/${encodeURIComponent(r.id)}${r.step ? `/${encodeURIComponent(r.step)}` : ''}`;
+  }
+}
+const stepRoute = (x: Step): Route => ({ kind: 'page', id: x.pageId, step: x.id });
 
 /** A page applies when it is unconditional, a question enabling it was answered yes, or it already holds data. */
 export function isActive(session: Session, p: PageDef): boolean {
@@ -54,14 +77,22 @@ export function Shell({ session }: { session: Session }) {
     if (p) go({ kind: 'page', id: p.id });
   };
 
+  // the whole wizard as one list: profile, every step of every applicable page, results.
+  // Movement is free in both directions; nothing is required to continue.
   const active = ALL_PAGES.filter((p) => isActive(session, p));
-  const steps: Route[] = [{ kind: 'profile' }, ...active.map((p) => ({ kind: 'page', id: p.id }) as Route), { kind: 'results' }];
-  const idx = steps.findIndex((s) => href(s) === href(route));
-  const prev = idx > 0 ? steps[idx - 1] : null;
-  const next = idx >= 0 && idx < steps.length - 1 ? steps[idx + 1] : null;
+  const byPage = new Map(active.map((p) => [p.id, pageSteps(session, p)]));
   const page = route.kind === 'page' ? ALL_PAGES.find((p) => p.id === route.id) : undefined;
+  if (page && !byPage.has(page.id)) byPage.set(page.id, pageSteps(session, page)); // opened directly
+  const flat: Route[] = [{ kind: 'profile' }, ...[...byPage.values()].flatMap((ss) => ss.map(stepRoute)), { kind: 'results' }];
+  const pageStepsNow = page ? byPage.get(page.id) ?? [] : [];
+  const wanted = route.kind === 'page' ? route.step : undefined;
+  const step = page ? pageStepsNow.find((x) => x.id === wanted) ?? pageStepsNow[0] : undefined;
+  const here = step ? href(stepRoute(step)) : href(route);
+  const idx = flat.findIndex((x) => href(x) === here);
+  const prev = idx > 0 ? flat[idx - 1] : null;
+  const next = idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : null;
   const [navOpen, setNavOpen] = useState(false);
-  useEffect(() => setNavOpen(false), [route]);
+  useEffect(() => setNavOpen(false), [here]);
 
   if (route.kind === 'form') return <PrintableForm session={session} onBack={() => go({ kind: 'results' })} />;
 
@@ -83,11 +114,11 @@ export function Shell({ session }: { session: Session }) {
       <div className="body">
         <nav className={`sidebar${navOpen ? ' open' : ''}`} aria-label="Pasos de la declaración">
           <button type="button" className="nav-toggle" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>
-            <span>{idx >= 0 ? `Paso ${idx + 1} de ${steps.length}: ${stepTitle(route)}` : 'Secciones'}</span>
+            <span>{idx >= 0 ? `Paso ${idx + 1} de ${flat.length}: ${step?.title ?? stepTitle(route)}` : 'Secciones'}</span>
             <span aria-hidden="true">{navOpen ? '▲' : '▼'}</span>
           </button>
           <div className="steps-wrap">
-            <Steps session={session} route={route} go={go} />
+            <Steps session={session} route={route} go={go} byPage={byPage} current={step} />
           </div>
         </nav>
 
@@ -96,12 +127,21 @@ export function Shell({ session }: { session: Session }) {
           {route.kind === 'profile' && <ProfilePage session={session} onDone={() => next && go(next)} />}
           {route.kind === 'results' && <ResultsPage session={session} go={goSheet} openForm={() => go({ kind: 'form' })} />}
           {route.kind === 'page' &&
-            (page ? (
+            (page && step ? (
               <>
-                <p className="eyebrow">{page.group.title}</p>
-                <h1>{page.title}</h1>
-                <FormPage session={session} page={page} />
+                <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={flat.length} aria-valuenow={idx + 1} aria-label="Progreso de la declaración">
+                  <div className="progress-bar" style={{ width: `${Math.round(((idx + 1) / flat.length) * 100)}%` }} />
+                </div>
+                <p className="eyebrow">
+                  {page.group.title} · {page.title}
+                  {pageStepsNow.length > 1 && ` · Paso ${pageStepsNow.indexOf(step) + 1} de ${pageStepsNow.length}`}
+                </p>
+                {step.sheetTitle && step.sheetTitle !== step.title && <p className="sheet-kicker">{step.sheetTitle}</p>}
+                <h1>{step.title}</h1>
+                <StepView key={step.id} session={session} step={step} />
               </>
+            ) : page ? (
+              <p className="muted">Con sus respuestas actuales esta sección no tiene preguntas.</p>
             ) : (
               <p>Esta sección no existe.</p>
             ))}
@@ -109,14 +149,14 @@ export function Shell({ session }: { session: Session }) {
             <nav className="pager" aria-label="Anterior y siguiente">
               {prev ? (
                 <button type="button" className="ghost" onClick={() => go(prev)}>
-                  ← {stepTitle(prev)}
+                  ← Atrás
                 </button>
               ) : (
                 <span />
               )}
               {next && (
                 <button type="button" className="primary" onClick={() => go(next)}>
-                  {stepTitle(next)} →
+                  {next.kind === 'results' ? 'Ver resultado' : 'Continuar'} →
                 </button>
               )}
             </nav>
@@ -134,35 +174,76 @@ function stepTitle(r: Route): string {
   return 'Inicio';
 }
 
-function filledCount(session: Session, p: PageDef): number {
-  const keys = Object.keys(session.inputs);
-  return p.sheets.reduce((n, { sheet }) => n + keys.filter((k) => k.startsWith(`${sheet}!`)).length, 0);
-}
-
-function Steps({ session, route, go }: { session: Session; route: Route; go: (r: Route) => void }) {
+function Steps({
+  session,
+  route,
+  go,
+  byPage,
+  current,
+}: {
+  session: Session;
+  route: Route;
+  go: (r: Route) => void;
+  byPage: Map<string, Step[]>;
+  current?: Step;
+}) {
   const cur = href(route);
-  const item = (r: Route, label: string, count?: number) => (
+  const link = (r: Route, label: string, on: boolean, extra?: ReactNode) => (
     <li key={href(r)}>
-      <a href={href(r)} className={`step${cur === href(r) ? ' is-current' : ''}`} aria-current={cur === href(r) ? 'page' : undefined}>
+      <a href={href(r)} className={`step${on ? ' is-current' : ''}`} aria-current={on ? 'step' : undefined}>
         <span>{label}</span>
-        {!!count && <span className="pill">{count}</span>}
+        {extra}
       </a>
     </li>
   );
   return (
     <>
-      <ul className="steps">{item({ kind: 'profile' }, 'Perfil')}</ul>
+      <ul className="steps">{link({ kind: 'profile' }, 'Perfil', cur === '#/perfil')}</ul>
       {GROUPS.map((g) => {
-        const pages = g.pages.filter((p) => isActive(session, p));
+        const pages = g.pages.filter((p) => byPage.has(p.id));
         if (!pages.length) return null;
         return (
           <div key={g.id} className="step-group">
             <h2>{g.title}</h2>
-            <ul className="steps">{pages.map((p) => item({ kind: 'page', id: p.id }, p.title, filledCount(session, p)))}</ul>
+            <ul className="steps">
+              {pages.map((p) => {
+                const ss = byPage.get(p.id) ?? [];
+                const open = current?.pageId === p.id;
+                const done = ss.filter((x) => stepHasData(session, x)).length;
+                return (
+                  <li key={p.id}>
+                    <a href={href({ kind: 'page', id: p.id, step: ss[0]?.id })} className={`step${open ? ' is-open' : ''}`}>
+                      <span>{p.title}</span>
+                      {ss.length > 0 && (
+                        <span className="pill" title={`${done} de ${ss.length} pasos con datos`}>
+                          {done}/{ss.length}
+                        </span>
+                      )}
+                    </a>
+                    {open && ss.length > 1 && (
+                      <ol className="substeps">
+                        {ss.map((x) =>
+                          link(
+                            stepRoute(x),
+                            x.title,
+                            x.id === current?.id,
+                            stepHasData(session, x) ? (
+                              <span className="tick" aria-label="con datos">
+                                ✓
+                              </span>
+                            ) : undefined,
+                          ),
+                        )}
+                      </ol>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         );
       })}
-      <ul className="steps">{item({ kind: 'results' }, 'Resultado')}</ul>
+      <ul className="steps">{link({ kind: 'results' }, 'Resultado', cur === '#/resultado')}</ul>
       <button type="button" className="link small" onClick={() => go({ kind: 'profile' })}>
         ¿Falta una sección? Revise su perfil
       </button>

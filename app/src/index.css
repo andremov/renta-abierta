@@ -1093,3 +1093,63 @@ select {
     grid-area: copy;
   }
 }
+
+/* ---------- wizard ---------- */
+.progress {
+  height: 6px;
+  background: var(--accent-soft);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+.sheet-kicker {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+.step-body {
+  display: grid;
+  gap: 16px;
+}
+.step-body > * {
+  min-width: 0;
+}
+.step-body .form-section {
+  padding: 20px 22px;
+}
+.step.is-open {
+  font-weight: 700;
+}
+.substeps {
+  list-style: none;
+  margin: 2px 0 6px 12px;
+  padding: 0 0 0 8px;
+  border-left: 2px solid var(--rule);
+  display: grid;
+  gap: 1px;
+}
+.substeps .step {
+  font-size: var(--step--1);
+  padding: 4px 8px;
+}
+.tick {
+  color: var(--accent);
+  font-weight: 700;
+}
+.is-current .tick {
+  color: var(--accent-ink);
+}
+.pager .primary {
+  min-width: 10rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .progress-bar {
+    transition: none;
+  }
+}
