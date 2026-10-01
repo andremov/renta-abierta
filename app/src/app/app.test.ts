@@ -116,3 +116,17 @@ describe('session', () => {
     expect(s.get('Datos_Salarios', 'E6')).toBeNull();
   });
 });
+
+describe('page footer', () => {
+  it('parses the Formulario footer like Excel prints it', async () => {
+    const { parseHeaderFooter, marginBoxCss } = await import('./headerFooter');
+    const code = '&L&9    \n\n&C&14\n\n&16\n&R&D&T \nBORRADOR_x000D_&1#&"Calibri"&10&K000000 Información Pública Clasificada ';
+    const s = parseHeaderFooter(code, new Date(2026, 8, 30, 19, 46), 'Formulario');
+    expect(s.left).toBeUndefined();
+    expect(s.center).toBeUndefined();
+    expect(s.right?.lines).toEqual(['30/09/202619:46', 'BORRADOR', 'Información Pública Clasificada']);
+    expect(s.right?.font).toBe('Calibri');
+    expect(s.right?.sizePt).toBe(10);
+    expect(marginBoxCss(s, 'bottom')).toContain('@bottom-right');
+  });
+});

@@ -331,6 +331,12 @@ def print_setup(root):
         d["margins"] = {k: float(v) for k, v in pm.attrib.items()}
     if po is not None and po.get("horizontalCentered") in ("1", "true"):
         d["center"] = 1
+    hf = root.find("m:headerFooter", NS)
+    if hf is not None:
+        for tag in ("oddHeader", "oddFooter"):
+            el = hf.find(f"m:{tag}", NS)
+            if el is not None and el.text:
+                d[tag] = el.text
     breaks = root.find("m:rowBreaks", NS)
     if breaks is not None:
         d["rowBreaks"] = [int(b.get("id")) for b in breaks.findall("m:brk", NS)]
@@ -481,6 +487,15 @@ def main():
         nf = sum(1 for c in cells.values() if "f" in c)
         ni = sum(1 for c in cells.values() if "in" in c)
         print(f"  {name}: {len(cells)} cells, {nf} formulas, {ni} inputs, {len(dvs)} validations", file=sys.stderr)
+
+    # Excel's calculation order; iterative (circular) groups are evaluated in this order
+    if "xl/calcChain.xml" in z.namelist():
+        ids = {sh.get("sheetId"): sh.get("name") for sh in wb.findall("m:sheets/m:sheet", NS)}
+        chain, cur = [], None
+        for c in ET.fromstring(z.read("xl/calcChain.xml")).findall("m:c", NS):
+            cur = c.get("i") or cur
+            chain.append([ids[cur], c.get("r")])
+        model["calcChain"] = chain
 
     OUT.parent.mkdir(exist_ok=True)
     OUT.write_text(json.dumps(model, ensure_ascii=False), encoding="utf-8")

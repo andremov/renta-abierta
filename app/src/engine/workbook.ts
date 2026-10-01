@@ -56,7 +56,7 @@ export interface ModelSheet {
   gridLines?: boolean;
   codeName?: string | null;
   controls?: ModelControl[];
-  print?: { scale?: number; orientation?: string; margins?: Record<string, number>; center?: 1; rowBreaks?: number[] };
+  print?: { scale?: number; orientation?: string; margins?: Record<string, number>; center?: 1; rowBreaks?: number[]; oddHeader?: string; oddFooter?: string };
   cells: Record<string, ModelCell>;
 }
 
@@ -64,6 +64,8 @@ export interface Model {
   sheets: ModelSheet[];
   names?: Record<string, string>;
   styles?: CellStyle[];
+  /** Excel's calculation order ([sheet, A1]); used to order iterative (circular) groups */
+  calcChain?: [string, string][];
 }
 
 interface Rec {
@@ -71,6 +73,8 @@ interface Rec {
 }
 
 interface Formula {
+  /** value saved in the file: the starting point of every iterative calculation */
+  init: Scalar;
   sheet: number;
   r: number;
   c: number;
@@ -132,7 +136,7 @@ export class Workbook implements CellReader {
           } catch (e) {
             throw new Error(`${sh.name}!${a1}: ${(e as Error).message}`);
           }
-          this.formulas.push({ sheet: si, r, c, src: cell.f, node, array: !!cell.arr, rec });
+          this.formulas.push({ init: rec.v, sheet: si, r, c, src: cell.f, node, array: !!cell.arr, rec });
         }
       }
       this.cells.push(map);
@@ -207,6 +211,12 @@ export class Workbook implements CellReader {
       return [...out];
     });
 
+    // Within a circular group Excel recalculates in its calc-chain order; when rounding makes a
+    // group oscillate instead of converging, that order decides the final values.
+    const chainRank = new Map<string, number>();
+    (this.model.calcChain ?? []).forEach(([sh, a1], i) => chainRank.set(`${sh}!${a1}`, i));
+    const rank = (i: number) => chainRank.get(this.addr(i)) ?? 1e9 + i;
+
     // Tarjan's SCC (iterative); SCCs come out in dependency order.
     const n = this.formulas.length;
     const index = new Int32Array(n).fill(-1);
@@ -247,12 +257,34 @@ export class Workbook implements CellReader {
             comp.push(w);
           } while (w !== v);
           if (comp.length === 1 && !deps[v].includes(v)) plan.push(v);
-          else plan.push(comp.sort((a, b) => a - b));
+          else plan.push(comp.sort((a, b) => rank(a) - rank(b)));
         }
       }
     }
-    this.plan = plan;
+    // With circular references Excel iterates its whole calculation chain, so cells downstream of a
+    // cycle are recomputed on every pass too (and may end one pass behind if they come earlier in
+    // the chain). Emulate that: everything reachable from a cycle forms one iteration region,
+    // evaluated in calc-chain order after the rest of the workbook.
+    const cyclic = plan.filter((p): p is number[] => Array.isArray(p)).flat();
+    if (cyclic.length) {
+      const dependents: number[][] = this.formulas.map(() => []);
+      deps.forEach((ds, i) => ds.forEach((d) => dependents[d].push(i)));
+      const region = new Set<number>(cyclic);
+      const queue = [...cyclic];
+      while (queue.length) for (const d of dependents[queue.pop()!]) if (!region.has(d)) region.add(d), queue.push(d);
+      this.plan = [
+        ...plan.filter((p) => typeof p === 'number' && !region.has(p)),
+        [...region].sort((a, b) => rank(a) - rank(b)),
+      ];
+      this.regionSize = region.size;
+      this.regionCells = new Set([...region].map((i) => this.addr(i)));
+    } else this.plan = plan;
   }
+
+  /** number of formulas evaluated iteratively (cycles and everything downstream of them) */
+  regionSize = 0;
+  /** "Sheet!A1" of every formula in the iteration region */
+  regionCells = new Set<string>();
 
   /** Circular reference groups, as "Sheet!A1" lists. */
   cycles(): string[][] {
@@ -298,7 +330,12 @@ export class Workbook implements CellReader {
         f.rec.v = this.evalFormula(f);
         continue;
       }
-      for (let it = 0; it < this.maxIterations; it++) {
+      // Canonical result = Excel's full recalculation of the file: start the region from the values
+      // saved in the file, evaluate it once in the normal pass, then iterate up to MaxIterations
+      // more times. When rounding makes a cycle oscillate forever, this pins the outcome instead
+      // of letting it depend on how many recalculations happened before.
+      for (const i of step) this.formulas[i].rec.v = this.formulas[i].init;
+      for (let it = 0; it < this.maxIterations + 1; it++) {
         let delta = 0;
         for (const i of step) {
           const f = this.formulas[i];

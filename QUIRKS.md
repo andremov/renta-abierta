@@ -9,6 +9,7 @@ here so they can be reported to DIAN or deliberately fixed later.
 | `Deudas_Inex!Z2` and other help lookups | `VLOOKUP(..., AY_*!A2:D26, 5, 0)` asks for column 5 of a 4-column table; others point to dead external workbooks (`[4]`, `[5]`). | Contextual help lookups always return `#N/A`. |
 | Defined names | 80+ names (`AÑO_GRAVABLE_DE_2003`, `RG`, …) point to 2003-era files on `\\BCCNSIST005` and `A:\Documents and Settings\...`. | Dead; if "update links" is accepted, Windows may attempt SMB connections. Not used by any formula. |
 | `DatosGenerales` `Worksheet_Change` | Several `Case "$E$10"` branches duplicated; the second never runs. `Case "$C$9"` compares a cell to itself. | Intended validations never fire. |
+| Foreign-tax discount loop (`Impuestos_Exteriortra!E18` ↔ `Impuestos_Exteriorcanola!E17`, boxes 122/125) | The two cells feed each other through `ROUND(…/1000)*1000`; for some amounts they flip by ±1.000 forever instead of converging, so Excel's iterative calculation stops wherever iteration 100 lands. | Excel's result then depends on how many recalculations happened before. The web pins it to Excel's *full recalculation* of the file (start from the saved values, calc-chain order, 1 + 100 passes), which reproduced Excel's Form 210 in all 200 test profiles. In 2 of them a per-row detail line in that annex (not on the form) still differs by 1.000, because Excel re-sorts its chain at run time. |
 | `TEXT(x," $ ###.###.###")` labels | Format string assumes a Spanish (Colombia) Windows locale. | On an English-locale Excel the labels render as `$ ..`. The port always uses Colombian formatting. |
 
 ## Deliberate differences from the Excel file (UI/VBA behaviour only)
@@ -34,8 +35,8 @@ differently from DIAN's VBA, on purpose:
 
 The printable form renders the `Formulario` sheet with its own layout, rich text, fills,
 borders, 55 % print scale and margins, paginated like Excel (2 pages). Remaining
-differences: fonts are Arial from the browser (Excel's metrics differ slightly), and the
-footer Excel adds when printing ("Información Pública Clasificada", date/time) is not
-reproduced: it is a document-classification label added by Office, not part of the sheet.
-Thousands separators follow Colombian conventions (as in DIAN's own saved file),
-regardless of the computer's regional settings.
+differences: fonts are Arial from the browser (Excel's metrics differ slightly). The sheet's
+own footer (print date/time, "BORRADOR", "Información Pública Clasificada") is reproduced
+in the page margin, scaled like Excel's. Dates, times and thousands separators always
+follow Colombian conventions (as in DIAN's own saved file), regardless of the computer's
+regional settings.

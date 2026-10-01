@@ -4,6 +4,7 @@ import type { Session } from './store';
 import { useSession } from './store';
 import { sheetByName } from './nav';
 import { buildLayout } from './layout';
+import { marginBoxCss, parseHeaderFooter } from './headerFooter';
 import type { ModelSheet } from '../engine/workbook';
 import { GROUPS, ALL_PAGES, type PageDef } from '../forms/pages';
 import { FormPage } from '../forms/FormPage';
@@ -242,7 +243,20 @@ function PrintableForm({ session, onBack }: { session: Session; onBack: () => vo
   const sheet = sheetByName(session.model, 'Formulario')!;
   const hidden = useMemo(() => new Set(sheet.hiddenRows), [sheet]);
   const { pages, scale, margins } = useMemo(() => printPages(sheet, hidden), [sheet, hidden]);
-  const pageCss = `@page { size: letter; margin: ${margins.top}in ${margins.right}in ${margins.bottom}in ${margins.left}in; }`;
+  // Excel fills &D/&T with the moment of printing
+  const [printedAt, setPrintedAt] = useState(() => new Date());
+  useEffect(() => {
+    const on = () => setPrintedAt(new Date());
+    addEventListener('beforeprint', on);
+    return () => removeEventListener('beforeprint', on);
+  }, []);
+  const ps = sheet.print ?? {};
+  const header = ps.oddHeader ? marginBoxCss(parseHeaderFooter(ps.oddHeader, printedAt, sheet.name), 'top', scale) : '';
+  const footer = ps.oddFooter ? marginBoxCss(parseHeaderFooter(ps.oddFooter, printedAt, sheet.name), 'bottom', scale) : '';
+  const pageCss = `@page { size: letter; margin: ${margins.top}in ${margins.right}in ${margins.bottom}in ${margins.left}in;
+${header}
+${footer}
+}`;
   return (
     <div className="print-page" style={{ '--print-zoom': scale } as CSSProperties}>
       <style>{pageCss}</style>
