@@ -52,10 +52,13 @@ npm test                 # engine + app tests
 
 - `cached.test.ts`: recalculating the untouched workbook reproduces all 8,923
   values Excel cached in the file.
-- `oracle.test.ts`: 30 randomized scenarios (100–480 inputs each across up to
+- `oracle.test.ts`: 200 realistic taxpayer profiles (`scripts/gen-profiles.ts`) computed
+  through the web session, plus 30 randomized scenarios (100–480 inputs each across up to
   21 annexes) compared cell-by-cell with results computed by real Excel
   (`tools/gen_cases.py`, `tools/excel_oracle.py`; Windows + Excel, macros
   force-disabled). Skipped when `build/oracle` is absent.
+- `app/vba-parity.test.ts`: scripted scenarios run in Excel with DIAN's macros on (sandboxed
+  copy, `tools/excel_vba_parity.py`) and through the web rules; values must match.
 - `forms/coverage.test.ts`: every input cell a person can fill in Excel is
   reachable from the web forms (77 input sheets), so nothing that affects the
   Form 210 is left out. `forms/pages.test.ts`: every input sheet belongs to a page.
