@@ -205,6 +205,39 @@ def color_of(el, theme):
     return "#" + rgb.upper()
 
 
+PATTERN_COVERAGE = {"gray0625": 0.0625, "gray125": 0.125, "lightGray": 0.25, "mediumGray": 0.5, "darkGray": 0.75}
+
+
+def blend(fg, bg, share):
+    a = [int(fg[i:i + 2], 16) for i in (1, 3, 5)]
+    b = [int(bg[i:i + 2], 16) for i in (1, 3, 5)]
+    return "#" + "".join("%02X" % round(x * share + y * (1 - share)) for x, y in zip(a, b))
+
+
+def rich_runs(si, theme):
+    """Formatted runs of a rich-text string, or None for plain strings."""
+    runs = si.findall("m:r", NS)
+    if not runs:
+        return None
+    out = []
+    for r in runs:
+        d = {"t": "".join(t.text or "" for t in r.iter(M + "t"))}
+        pr = r.find("m:rPr", NS)
+        if pr is not None:
+            sz = pr.find("m:sz", NS)
+            if sz is not None:
+                d["sz"] = float(sz.get("val"))
+            if pr.find("m:b", NS) is not None and pr.find("m:b", NS).get("val") not in ("0", "false"):
+                d["b"] = 1
+            if pr.find("m:i", NS) is not None:
+                d["i"] = 1
+            col = color_of(pr.find("m:color", NS), theme)
+            if col:
+                d["color"] = col
+        out.append(d)
+    return out
+
+
 def load_styles(z):
     """Returns ([(locked, numFmt, styleIndex)] per xf, [style dicts])."""
     root = ET.fromstring(z.read("xl/styles.xml"))
@@ -234,8 +267,15 @@ def load_styles(z):
     for f in root.findall("m:fills/m:fill", NS):
         p = f.find("m:patternFill", NS)
         bg = None
-        if p is not None and p.get("patternType") not in (None, "none"):
-            bg = color_of(p.find("m:fgColor", NS), theme) or "#FFFFFF"
+        kind = p.get("patternType") if p is not None else None
+        if kind not in (None, "none"):
+            fg = color_of(p.find("m:fgColor", NS), theme)
+            if kind == "solid":
+                bg = fg or "#FFFFFF"  # automatic / system colour: Excel paints these white
+            else:
+                # dotted/hatched patterns: approximate by the share of the cell the pattern covers
+                back = color_of(p.find("m:bgColor", NS), theme) or "#FFFFFF"
+                bg = blend(fg or "#000000", back, PATTERN_COVERAGE.get(kind, 0.5))
         fills.append(bg)
 
     borders = []
@@ -278,12 +318,34 @@ def load_styles(z):
     return xfs, styles
 
 
+def print_setup(root):
+    ps = root.find("m:pageSetup", NS)
+    pm = root.find("m:pageMargins", NS)
+    po = root.find("m:printOptions", NS)
+    d = {}
+    if ps is not None:
+        for k in ("scale", "fitToWidth", "fitToHeight", "orientation", "paperSize"):
+            if ps.get(k):
+                d[k] = ps.get(k) if k == "orientation" else int(ps.get(k))
+    if pm is not None:
+        d["margins"] = {k: float(v) for k, v in pm.attrib.items()}
+    if po is not None and po.get("horizontalCentered") in ("1", "true"):
+        d["center"] = 1
+    breaks = root.find("m:rowBreaks", NS)
+    if breaks is not None:
+        d["rowBreaks"] = [int(b.get("id")) for b in breaks.findall("m:brk", NS)]
+    return d
+
+
 def main():
     z = zipfile.ZipFile(SRC)
-    sst = []
+    sst, sst_rich = [], []
     if "xl/sharedStrings.xml" in z.namelist():
         root = ET.fromstring(z.read("xl/sharedStrings.xml"))
-        sst = [text_of(si) for si in root.findall("m:si", NS)]
+        sis = root.findall("m:si", NS)
+        sst = [text_of(si) for si in sis]
+        theme = load_theme(z)
+        sst_rich = [rich_runs(si, theme) for si in sis]
     xfs, styles = load_styles(z)
 
     wb = ET.fromstring(z.read("xl/workbook.xml"))
@@ -335,6 +397,8 @@ def main():
                 val = None
                 if t == "s" and vel is not None:
                     val = sst[int(vel.text)]
+                    if sst_rich[int(vel.text)]:
+                        d["rt"] = sst_rich[int(vel.text)]
                 elif t == "inlineStr":
                     isel = c.find(M + "is")
                     val = text_of(isel) if isel is not None else ""
@@ -409,6 +473,7 @@ def main():
             "controls": controls,
             "merges": merges, "validations": dvs,
             "cols": cols, "hiddenCols": hidden_cols, "hiddenRows": hidden_rows, "heights": heights,
+            "print": print_setup(root),
             "gridLines": (root.find("m:sheetViews/m:sheetView", NS) is None
                           or root.find("m:sheetViews/m:sheetView", NS).get("showGridLines") not in ("0", "false")),
             "cells": cells,

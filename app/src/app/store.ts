@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from 'react';
 import { Model, Workbook } from '../engine/workbook';
 import { XErr, type Scalar } from '../engine/types';
-import { inactiveKeys } from './rules';
+import { CLEAR_ON_EDIT, inactiveKeys } from './rules';
 
 const STORAGE_KEY = 'renta-ag2025:inputs:v1';
 const PROFILE_KEY = 'renta-ag2025:profile:v1';
@@ -52,8 +52,19 @@ export class Session {
 
   private applyAll() {
     const before = this.inactive;
-    this.inactive = inactiveKeys(this.inputs, this.raw);
-    const keys = new Set([...Object.keys(this.inputs), ...before]);
+    // Like DIAN's VBA, values whose question no longer applies are erased (not just ignored).
+    // Repeat until stable: erasing one answer can make a dependent question inapplicable.
+    const erased = new Set<string>();
+    for (let guard = 0; guard < 5; guard++) {
+      const off = inactiveKeys(this.inputs, this.raw);
+      if (!off.size) break;
+      for (const k of off) {
+        delete this.inputs[k];
+        erased.add(k);
+      }
+    }
+    this.inactive = new Set();
+    const keys = new Set([...Object.keys(this.inputs), ...before, ...erased]);
     for (const k of keys) {
       const [sheet, a1] = splitKey(k);
       try {
@@ -71,9 +82,17 @@ export class Session {
 
   set(sheet: string, a1: string, v: Scalar) {
     const k = `${sheet}!${a1}`;
+    const changed = this.inputs[k] !== v;
     if (v === null || v === '') delete this.inputs[k];
     else this.inputs[k] = v;
     this.wb.set(sheet, a1, v);
+    if (changed)
+      for (const target of CLEAR_ON_EDIT[k] ?? []) {
+        if (!(target in this.inputs)) continue;
+        delete this.inputs[target];
+        const i = target.lastIndexOf('!');
+        this.wb.set(target.slice(0, i), target.slice(i + 1), null);
+      }
     this.applyAll();
     this.persist();
     this.emit();

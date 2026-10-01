@@ -28,6 +28,8 @@ export interface PlacedControl {
 export interface SheetLayout {
   widths: number[];
   heights: number[];
+  /** sheet row (0-based) of each grid row */
+  rowIndex: number[];
   cells: Placed[];
   controls: PlacedControl[];
 }
@@ -42,7 +44,7 @@ const px = {
   height: (pt: number) => Math.round((pt * 4) / 3),
 };
 
-export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>): SheetLayout {
+export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>, rowRange?: [number, number]): SheetLayout {
   const entries = Object.entries(sh.cells).map(([a1, cell]) => {
     const [r, c] = parseA1(a1);
     return { a1, r, c, cell };
@@ -69,6 +71,7 @@ export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>): SheetLayou
     c1 = Math.min(c1, HELPER_COL - 1);
   }
 
+  if (rowRange) [r0, r1] = rowRange;
   const colWidth = (c: number) => {
     const spec = sh.cols.find(([a, b]) => c + 1 >= a && c + 1 <= b);
     return px.width(spec ? spec[2] : 8.43);
@@ -86,11 +89,13 @@ export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>): SheetLayou
   }
   const rowLine = new Map<number, number>();
   const heights: number[] = [];
+  const rowIndex: number[] = [];
   for (let r = r0; r <= r1; r++) {
     if (hiddenRows.has(r + 1)) continue;
     const h = rowHeight(r);
     if (h <= 0) continue;
     heights.push(h);
+    rowIndex.push(r);
     rowLine.set(r, heights.length);
   }
 
@@ -172,5 +177,5 @@ export function buildLayout(sh: ModelSheet, hiddenRows: Set<number>): SheetLayou
     const parts = [left ?? up].filter((x): x is string => !!x).map(clean);
     p.label = parts.length ? `${parts[0]} (${p.a1})` : `Casilla ${p.a1}`;
   }
-  return { widths, heights, cells: placed, controls };
+  return { widths, heights, rowIndex, cells: placed, controls };
 }

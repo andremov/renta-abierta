@@ -27,6 +27,6 @@ const box5 = await page.locator('tr', { has: page.locator('td.n', { hasText: /^5
 
 await page.goto(`${base}#/formulario`);
 await page.waitForSelector('.sheet-grid');
-const printable = (await page.locator('.sheet-grid').innerText()).includes('80123456');
+const printable = (await page.locator('.print-page').innerText()).includes('80123456');
 console.log(JSON.stringify({ popupShown: popup > 0, box5, printableHasNit: printable, problems, external }, null, 1));
 await browser.close();

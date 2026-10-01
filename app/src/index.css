@@ -841,6 +841,9 @@ select {
 .print-note {
   margin: 0;
 }
+.print-sheet {
+  max-width: 100%;
+}
 
 /* ---------- the sheet ---------- */
 .sheet-scroll {
@@ -859,8 +862,10 @@ select {
   width: max-content;
   background: var(--paper);
   color: var(--paper-ink);
-  font-size: 12.5px;
-  line-height: 1.25;
+  /* the printable Form 210 uses the workbook's own typography: Arial, sizes in points */
+  font-family: Arial, Helvetica, 'Liberation Sans', sans-serif;
+  font-size: 13.33px;
+  line-height: 1.15;
   padding: 8px;
 }
 .cell {
@@ -871,9 +876,7 @@ select {
   white-space: nowrap;
 }
 .cell--calc {
-  font-family: var(--font-num);
   font-variant-numeric: tabular-nums;
-  font-size: 0.95em;
 }
 .cell--input {
   padding: 0;
@@ -1006,6 +1009,28 @@ select {
   }
 }
 @media print {
+  html,
+  body,
+  #root {
+    height: auto;
+  }
+  .print-page {
+    display: block;
+    padding: 0;
+  }
+  .print-sheet {
+    display: flex;
+    justify-content: center;
+    break-after: page;
+    break-inside: avoid;
+  }
+  .print-sheet:last-child {
+    break-after: auto;
+  }
+  .sheet-grid {
+    zoom: var(--print-zoom, 1);
+    padding: 0;
+  }
   .print-bar,
   .print-note {
     display: none;

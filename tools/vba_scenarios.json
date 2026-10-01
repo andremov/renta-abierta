@@ -1,0 +1,103 @@
+[
+  {
+    "name": "anticipo-impuesto-2024",
+    "steps": [
+      { "set": ["DatosGenerales", "C11", 3], "answers": [{ "cell": "DatosGenerales!H11", "value": 4500000 }] },
+      { "set": ["DatosGenerales", "C11", 1] },
+      { "set": ["DatosGenerales", "C11", 2], "answers": [{ "cell": "DatosGenerales!H11", "value": 3000000 }] }
+    ]
+  },
+  {
+    "name": "beneficio-auditoria",
+    "steps": [
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E9", 300000000] },
+      { "set": ["Datos_Salarios", "E3", "No"] },
+      { "set": ["Datos_Salarios", "E5", "No"] },
+      { "set": ["DatosGenerales", "C12", "X"], "answers": [{ "cell": "Liquidacion_Privada!H26", "value": 10000000 }], "confirm": "yes" },
+      { "checkpoint": "con-beneficio" },
+      { "set": ["DatosGenerales", "C12", null] }
+    ]
+  },
+  {
+    "name": "inversiones-otro-valor",
+    "steps": [
+      { "set": ["Inversiones", "B7", "Acciones Uno S.A."] },
+      { "set": ["Inversiones", "E7", 50000000] },
+      { "set": ["Inversiones", "F7", 40000000] },
+      { "set": ["Inversiones", "I7", "Otro valor"], "answers": [{ "cell": "Inversiones!Q7", "value": 45000000 }] },
+      { "checkpoint": "otro-valor" },
+      { "set": ["Inversiones", "I7", null] },
+      { "checkpoint": "sin-otro-valor" },
+      { "set": ["Inversiones", "I7", "Otro valor"], "answers": [{ "cell": "Inversiones!Q7", "value": 46000000 }] }
+    ]
+  },
+  {
+    "name": "activos-fijos-otro-valor",
+    "steps": [
+      { "set": ["Activos_Fijos", "C8", "Apartamento"] },
+      { "set": ["Activos_Fijos", "F8", 250000000] },
+      { "set": ["Activos_Fijos", "G8", 280000000] },
+      { "set": ["Activos_Fijos", "H8", 310000000] },
+      { "set": ["Activos_Fijos", "J8", "Otro valor"], "answers": [{ "cell": "Activos_Fijos!AT8", "value": 300000000 }] }
+    ]
+  },
+  {
+    "name": "salarios-preguntas",
+    "steps": [
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E9", 80000000] },
+      { "set": ["Datos_Salarios", "E3", "Si"] },
+      { "set": ["Datos_Salarios", "E4", 20000000] },
+      { "checkpoint": "militar" },
+      { "set": ["Datos_Salarios", "E3", "No"] },
+      { "set": ["Datos_Salarios", "E5", "Si"] },
+      { "set": ["Datos_Salarios", "E6", 5000000] },
+      { "checkpoint": "bonificacion" },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E9", 90000000] },
+      { "checkpoint": "tras-editar-salario" },
+      { "set": ["Datos_Salarios", "E3", "No"] },
+      { "set": ["Datos_Salarios", "E5", "Si"] },
+      { "set": ["Datos_Salarios", "E6", 5000000] },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E22", 40000000] },
+      { "set": ["Datos_Salarios", "E8", "No"] },
+      { "set": ["Datos_Salarios", "E10", "No"] }
+    ]
+  },
+  {
+    "name": "cesantias-y-gastos-representacion",
+    "steps": [
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E9", 60000000] },
+      { "set": ["Datos_Salarios", "E3", "No"] },
+      { "set": ["Datos_Salarios", "E5", "No"] },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E10", 6000000] },
+      { "set": ["Datos_Cesantias", "E3", 2000000] },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E12", 5000000] },
+      { "set": ["Datos_Cesantias", "E15", 3500000] },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E11", 10000000] },
+      { "set": ["Datos_Gastos_Rep", "E3", "Si"] },
+      { "checkpoint": "con-cesantias" },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E10", 0] },
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E11", null] }
+    ]
+  },
+  {
+    "name": "otros-ingresos-laborales",
+    "steps": [
+      { "set": ["Salarios_Demas_Pagos_Laborales", "E9", 50000000] },
+      { "set": ["Datos_Salarios", "E3", "No"] },
+      { "set": ["Datos_Salarios", "E5", "No"] },
+      { "set": ["Datos_Otros_Ingresos", "E6", 10000000], "answers": [{ "cell": "Datos_Otros_Ingresos!E7", "value": 4000000 }] },
+      { "set": ["Datos_Otros_Ingresos", "E14", 3000000], "answers": [{ "cell": "Datos_Otros_Ingresos!E15", "value": 1000000 }] },
+      { "set": ["Datos_Otros_Ingresos", "E19", 2000000], "answers": [{ "cell": "Datos_Otros_Ingresos!E20", "value": 500000 }] },
+      { "checkpoint": "con-exenciones" },
+      { "set": ["Datos_Otros_Ingresos", "E6", null] }
+    ]
+  },
+  {
+    "name": "venta-inmueble-participacion",
+    "steps": [
+      { "set": ["Venta_Inm_Dif_Casa_Hab", "B7", "Venta apartamento"] },
+      { "set": ["Venta_Inm_Dif_Casa_Hab", "D7", 150000000] },
+      { "set": ["Venta_Inm_Dif_Casa_Hab", "J7", "SI"], "answers": [{ "cell": "Venta_Inm_Dif_Casa_Hab!N21", "value": 50 }] }
+    ]
+  }
+]

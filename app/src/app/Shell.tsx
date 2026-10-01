@@ -1,8 +1,10 @@
 // App chrome: header, step navigation, routing between questionnaire, form pages and results.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { Session } from './store';
 import { useSession } from './store';
 import { sheetByName } from './nav';
+import { buildLayout } from './layout';
+import type { ModelSheet } from '../engine/workbook';
 import { GROUPS, ALL_PAGES, type PageDef } from '../forms/pages';
 import { FormPage } from '../forms/FormPage';
 import { ProfilePage } from '../forms/Profile';
@@ -201,11 +203,49 @@ function Home({ session, go }: { session: Session; go: (r: Route) => void }) {
   );
 }
 
+/** Pages of the printable form, split the way Excel paginates: the sheet's own print scale and
+ *  margins on a Letter page, breaking when the accumulated row heights fill a page. */
+function printPages(sheet: ModelSheet, hidden: Set<number>): { pages: [number, number][]; scale: number; margins: Record<string, number> } {
+  const ps = sheet.print ?? {};
+  // Excel's printed rows come out ~3% shorter than their nominal height (device-pixel rounding),
+  // so its effective scale is slightly below the nominal one; this reproduces its page breaks.
+  const scale = (ps.scale ?? 100) / 100 / 1.03;
+  const margins = { top: 0.75, bottom: 0.75, left: 0.7, right: 0.7, ...(ps.margins ?? {}) };
+  const pageHeight = ((11 - margins.top - margins.bottom) * 96) / scale;
+  const full = buildLayout(sheet, hidden);
+  const breaks = new Set((ps.rowBreaks ?? []).map((r) => r)); // Excel stores the last row of a page (1-based)
+  const pages: [number, number][] = [];
+  let start = full.rowIndex[0];
+  let used = 0;
+  full.rowIndex.forEach((r, i) => {
+    const h = full.heights[i];
+    if (used + h > pageHeight && used > 0) {
+      pages.push([start, full.rowIndex[i - 1]]);
+      start = r;
+      used = 0;
+    }
+    used += h;
+    if (breaks.has(r + 1)) {
+      pages.push([start, r]);
+      start = full.rowIndex[i + 1];
+      used = 0;
+    }
+  });
+  if (start !== undefined && (!pages.length || pages[pages.length - 1][1] < full.rowIndex[full.rowIndex.length - 1]))
+    pages.push([start, full.rowIndex[full.rowIndex.length - 1]]);
+  // a trailing sliver of empty rows is not a page
+  const height = ([a, b]: [number, number]) => full.rowIndex.reduce((h, r, i) => (r >= a && r <= b ? h + full.heights[i] : h), 0);
+  return { pages: pages.filter((pg) => height(pg) > 40), scale, margins };
+}
+
 function PrintableForm({ session, onBack }: { session: Session; onBack: () => void }) {
   const sheet = sheetByName(session.model, 'Formulario')!;
   const hidden = useMemo(() => new Set(sheet.hiddenRows), [sheet]);
+  const { pages, scale, margins } = useMemo(() => printPages(sheet, hidden), [sheet, hidden]);
+  const pageCss = `@page { size: letter; margin: ${margins.top}in ${margins.right}in ${margins.bottom}in ${margins.left}in; }`;
   return (
-    <div className="print-page">
+    <div className="print-page" style={{ '--print-zoom': scale } as CSSProperties}>
+      <style>{pageCss}</style>
       <div className="print-bar">
         <button type="button" className="ghost" onClick={onBack}>
           ← Volver al resultado
@@ -217,7 +257,11 @@ function PrintableForm({ session, onBack }: { session: Session; onBack: () => vo
       <p className="print-note muted">
         Formulario 210 tal como lo genera el Programa Ayuda Renta 2025. Úselo como guía para diligenciar el formulario oficial.
       </p>
-      <SheetGrid session={session} sheet={sheet} hiddenRows={hidden} onFocusCell={() => undefined} onNavigate={() => undefined} titles={new Map()} />
+      {pages.map((range) => (
+        <div key={range[0]} className="print-sheet">
+          <SheetGrid session={session} sheet={sheet} hiddenRows={hidden} rowRange={range} onFocusCell={() => undefined} onNavigate={() => undefined} titles={new Map()} />
+        </div>
+      ))}
     </div>
   );
 }

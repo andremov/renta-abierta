@@ -40,6 +40,10 @@ export function formatValue(v: Scalar, nf?: string): string {
     if (Number.isInteger(v)) return Math.abs(v) >= 10000 ? group(v, 0) : String(v);
     return String(Number(v.toPrecision(10))).replace('.', ',');
   }
+  if (/\[\$-F800\]/i.test(nf)) {
+    const d = new Date(EPOCH + Math.round(v) * 86400000);
+    return new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(d);
+  }
   if (isDateFormat(nf)) return serialToDate(v);
   if (isPercentFormat(nf)) {
     const d = (nf.split('.')[1] ?? '').replace(/[^0]/g, '').length;
