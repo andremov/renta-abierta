@@ -93,14 +93,26 @@ describe('session', () => {
     expect(t.get('DatosGenerales', 'E6')).toBe(4);
   });
 
-  it('uses the pop-up value only while its trigger is on', () => {
+  it('erases a pop-up value when its trigger turns off, like the VBA', () => {
     const s = new Session(model);
-    s.set('DatosGenerales', 'H11', 1000000);
-    expect(s.get('DatosGenerales', 'H11')).toBeNull();
     s.set('DatosGenerales', 'C11', 3);
+    s.set('DatosGenerales', 'H11', 1000000);
     expect(s.get('DatosGenerales', 'H11')).toBe(1000000);
     s.set('DatosGenerales', 'C11', 1);
     expect(s.get('DatosGenerales', 'H11')).toBeNull();
-    expect(s.inputs['DatosGenerales!H11']).toBe(1000000); // kept for when the trigger returns
+    expect(s.inputs['DatosGenerales!H11']).toBeUndefined();
+    s.set('DatosGenerales', 'C11', 3);
+    expect(s.get('DatosGenerales', 'H11')).toBeNull(); // asked again, as Excel's prompt would
+  });
+
+  it('resets salary questions when the salary is edited, like the VBA', () => {
+    const s = new Session(model);
+    s.set('Salarios_Demas_Pagos_Laborales', 'E9', 80000000);
+    s.set('Datos_Salarios', 'E3', 'No');
+    s.set('Datos_Salarios', 'E5', 'Si');
+    s.set('Datos_Salarios', 'E6', 5000000);
+    s.set('Salarios_Demas_Pagos_Laborales', 'E9', 90000000);
+    expect(s.inputs['Datos_Salarios!E3']).toBeUndefined();
+    expect(s.get('Datos_Salarios', 'E6')).toBeNull();
   });
 });

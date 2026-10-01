@@ -18,12 +18,24 @@ differently from DIAN's VBA, on purpose:
 
 | Excel behaviour | Web version | Why |
 |---|---|---|
-| Values requested in `InputBox` pop-ups and written into locked cells (e.g. `DatosGenerales!H11`, `Liquidacion_Privada!H26`, "Otro valor" amounts, exemptions in *Datos otros ingresos*). | Shown as labelled fields in a "Datos adicionales" panel when their trigger applies; the value counts as blank whenever the trigger is off (same effect as the VBA clearing it). | No modal dialogs; values stay editable. |
+| Values requested in `InputBox` pop-ups and written into locked cells (e.g. `DatosGenerales!H11`, `Liquidacion_Privada!H26`, "Otro valor" amounts, exemptions in *Datos otros ingresos*). | Shown as labelled form fields when their trigger applies. | No modal dialogs; values stay editable. |
 | `Inversiones` row 14 "Otro valor" writes to **Q11** (row 11's cell). | Writes to Q14. | Obvious bug: it overwrites another asset's value. |
 | `Otros_costos` E17 opens a "¿Facturó la totalidad…? marque 1/0" prompt whose answer overwrites the cost amount in F17. | Not replicated. | Stale code that destroys user input. |
-| Editing a salary clears that employer's answers in *Datos salarios* and jumps there. | Answers are kept; a "Preguntas adicionales" link appears on the salary sheet. Answers to questions that are not currently shown count as blank. | Losing answers on every edit is surprising; the calculation is identical. |
-| *Datos otros ingresos* shows one employer block at a time (buttons "…"). | All three blocks are shown. | Same data, simpler navigation. |
+| Editing a salary clears that employer's answers in *Datos salarios* and jumps there. | Same: the answers are erased (the questions appear again on the salary page). | Output parity with Excel. |
+| A value requested by a pop-up is erased when its trigger is turned off. | Same: the value is erased and must be entered again if the trigger comes back. | Output parity with Excel. |
+| *Datos otros ingresos* shows one employer block at a time (buttons "…"). | All three blocks are shown. | Presentation only; values identical. |
+| Helper sheets keep whatever rows were visible when DIAN saved the file. | Rows follow the current answers. | Presentation only; verified to give identical values (`vba-parity.test.ts`). |
 | `Validar()` blocks leaving *Datos generales* until 9 fields are filled. | Non-blocking "Pendientes antes de presentar" list on the home page and Form 210. | People can fill the sections in any order. |
 | "Patrimonio líquido 2024 must not exceed bruto" check never fires (duplicate `Case`). | Shown in "Pendientes". | It is the rule DIAN evidently intended. |
 | Rows 9, 11, 13 of *Datos cesantías* can never be shown. | Never shown. | Same as Excel. |
 | `TODAY()` in the form header. | Uses the browser's date. | Same as Excel. |
+
+## Printed Formulario 210
+
+The printable form renders the `Formulario` sheet with its own layout, rich text, fills,
+borders, 55 % print scale and margins, paginated like Excel (2 pages). Remaining
+differences: fonts are Arial from the browser (Excel's metrics differ slightly), and the
+footer Excel adds when printing ("Información Pública Clasificada", date/time) is not
+reproduced: it is a document-classification label added by Office, not part of the sheet.
+Thousands separators follow Colombian conventions (as in DIAN's own saved file),
+regardless of the computer's regional settings.

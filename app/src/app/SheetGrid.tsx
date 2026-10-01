@@ -1,7 +1,7 @@
 // Renders one worksheet as a CSS grid that mirrors the Excel layout.
 import { memo, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { CellStyle, ModelSheet } from '../engine/workbook';
-import { XErr, type Scalar } from '../engine/types';
+import { XErr, toA1, type Scalar } from '../engine/types';
 import type { Session } from './store';
 import { buildLayout, type Placed } from './layout';
 import { editText, formatValue, parseInput } from './format';
@@ -11,6 +11,7 @@ interface Props {
   session: Session;
   sheet: ModelSheet;
   hiddenRows: Set<number>;
+  rowRange?: [number, number];
   onFocusCell: (a1: string | null) => void;
   onNavigate: (sheet: string) => void;
   titles: Map<string, string>;
@@ -41,7 +42,13 @@ function cellCss(st: CellStyle | undefined, numeric: boolean): CSSProperties {
   if (st.b) css.fontWeight = 700;
   if (st.i) css.fontStyle = 'italic';
   if (st.u) css.textDecoration = 'underline';
-  if (st.sz) css.fontSize = `${Math.max(9, Math.min(st.sz, 18)) * 1.2}px`;
+  if (st.sz) css.fontSize = `${(st.sz * 4) / 3}px`; // Excel point size
+  if (st.rot === 90) {
+    css.writingMode = 'vertical-rl';
+    css.transform = 'rotate(180deg)';
+  } else if (st.rot === 180) {
+    css.writingMode = 'vertical-rl';
+  }
   const ha = st.ha ?? (numeric ? 'right' : 'left');
   css.justifyContent = ha === 'center' || ha === 'centerContinuous' ? 'center' : ha === 'right' ? 'flex-end' : 'flex-start';
   css.textAlign = ha === 'center' || ha === 'centerContinuous' ? 'center' : ha === 'right' ? 'right' : ha === 'justify' ? 'justify' : 'left';
@@ -57,9 +64,24 @@ function cellCss(st: CellStyle | undefined, numeric: boolean): CSSProperties {
   return css;
 }
 
-export function SheetGrid({ session, sheet, hiddenRows, onFocusCell, onNavigate, titles }: Props) {
-  const layout = useMemo(() => buildLayout(sheet, hiddenRows), [sheet, hiddenRows]);
+export function SheetGrid({ session, sheet, hiddenRows, rowRange, onFocusCell, onNavigate, titles }: Props) {
+  const layout = useMemo(() => buildLayout(sheet, hiddenRows, rowRange), [sheet, hiddenRows, rowRange]);
   const styles = session.model.styles ?? [];
+  // Excel draws a border between two cells if either neighbour defines it
+  const styleAt = (r: number, c: number) => {
+    const cell = sheet.cells[toA1(r, c)];
+    return cell?.s !== undefined ? styles[cell.s] : undefined;
+  };
+  const withShared = (p: Placed, st: CellStyle | undefined): CellStyle | undefined => {
+    const own = st?.bd ?? [null, null, null, null];
+    const bd = [
+      own[0] ?? (p.r > 0 ? styleAt(p.r - 1, p.c)?.bd?.[2] : null) ?? null,
+      own[1] ?? styleAt(p.r, p.c + p.colSpan)?.bd?.[3] ?? null,
+      own[2] ?? styleAt(p.r + p.rowSpan, p.c)?.bd?.[0] ?? null,
+      own[3] ?? (p.c > 0 ? styleAt(p.r, p.c - 1)?.bd?.[1] : null) ?? null,
+    ];
+    return bd.some(Boolean) ? { ...st, bd } : st;
+  };
   const si = session.wb.sheetIndex(sheet.name);
   return (
     <div className="sheet-scroll">
@@ -77,7 +99,7 @@ export function SheetGrid({ session, sheet, hiddenRows, onFocusCell, onNavigate,
           <GridCell
             key={p.a1 + p.row}
             p={p}
-            style={p.cell?.s !== undefined ? styles[p.cell.s] : undefined}
+            style={withShared(p, p.cell?.s !== undefined ? styles[p.cell.s] : undefined)}
             session={session}
             sheet={sheet}
             si={si}
@@ -134,9 +156,28 @@ const GridCell = memo(function GridCell({ p, style, session, sheet, si, value, o
     );
   }
   const text = value instanceof XErr ? '' : formatValue(value, p.cell?.nf);
+  const rich = p.cell?.rt && p.cell.f === undefined;
   return (
     <div className={p.cell?.f !== undefined ? 'cell cell--calc' : 'cell'} style={css} data-a1={p.a1}>
-      {text}
+      {rich ? (
+        <span className="rich">
+          {p.cell!.rt!.map((run, i) => (
+            <span
+              key={i}
+              style={{
+                fontSize: run.sz ? `${(run.sz * 4) / 3}px` : undefined,
+                fontWeight: run.b ? 700 : undefined,
+                fontStyle: run.i ? 'italic' : undefined,
+                color: run.color,
+              }}
+            >
+              {run.t}
+            </span>
+          ))}
+        </span>
+      ) : (
+        text
+      )}
     </div>
   );
 });

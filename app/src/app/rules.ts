@@ -89,6 +89,17 @@ export const ROW_GATES: RowGate[] = [
   { sheet: 'Datos_Otros_Ingresos', rows: range(4, 59), when: () => true },
 ];
 
+/**
+ * Answers the VBA erases when another cell is edited (beyond rows becoming hidden):
+ * editing an employer's salary resets that employer's salary questions, as
+ * Salarios_Demas_Pagos_Laborales Worksheet_Change → Datos_Salarios does.
+ */
+export const CLEAR_ON_EDIT: Record<string, string[]> = {
+  [`${SAL}!E9`]: ['Datos_Salarios!E3', 'Datos_Salarios!E4', 'Datos_Salarios!E5', 'Datos_Salarios!E6'],
+  [`${SAL}!E22`]: ['Datos_Salarios!E8', 'Datos_Salarios!E9', 'Datos_Salarios!E10', 'Datos_Salarios!E11'],
+  [`${SAL}!E35`]: ['Datos_Salarios!E13', 'Datos_Salarios!E14', 'Datos_Salarios!E15', 'Datos_Salarios!E16'],
+};
+
 /** Question sheets that belong to another sheet (the VBA jumped to them automatically). */
 export const HELPER_OF: Record<string, string> = {
   Datos_Salarios: SAL,

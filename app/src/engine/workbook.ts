@@ -15,6 +15,8 @@ export interface ModelCell {
   arr?: string;
   /** index into Model.styles */
   s?: number;
+  /** rich-text runs (mixed font sizes/colours inside one cell) */
+  rt?: { t: string; sz?: number; b?: 1; i?: 1; color?: string }[];
 }
 
 export interface ModelControl {
@@ -54,6 +56,7 @@ export interface ModelSheet {
   gridLines?: boolean;
   codeName?: string | null;
   controls?: ModelControl[];
+  print?: { scale?: number; orientation?: string; margins?: Record<string, number>; center?: 1; rowBreaks?: number[] };
   cells: Record<string, ModelCell>;
 }
 

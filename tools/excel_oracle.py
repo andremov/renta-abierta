@@ -8,15 +8,19 @@ Usage: python tools/excel_oracle.py [case files...]   (default: build/cases/*.js
 Output: build/oracle/<case>.json = {sheet: {a1: value}}
 """
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
 import pythoncom
+import pywintypes
 import win32com.client
 
 SRC = Path("extracted/AyudaRenta 2025 V1.1 .xlsm").resolve()
-OUT = Path("build/oracle")
+OUT = Path(os.environ.get("ORACLE_OUT", "build/oracle"))
+# DIAN's VBA unprotects sheets with this password before writing pop-up values into locked cells
+SHEET_PASSWORD = "d2102004"
 ERRORS = {-2146826281: "#DIV/0!", -2146826246: "#N/A", -2146826259: "#NAME?", -2146826288: "#NULL!",
           -2146826252: "#NUM!", -2146826265: "#REF!", -2146826273: "#VALUE!"}
 
@@ -50,7 +54,12 @@ def run(app, case_path):
     try:
         app.Calculation = -4135  # manual while we write
         for sheet, a1, v in case["inputs"]:
-            wb.Worksheets(sheet).Range(a1).Value2 = v
+            ws = wb.Worksheets(sheet)
+            try:
+                ws.Range(a1).Value2 = v
+            except pywintypes.com_error:
+                ws.Unprotect(SHEET_PASSWORD)  # locked cell written by VBA (pop-up value)
+                ws.Range(a1).Value2 = v
         app.Iteration = True
         app.MaxIterations = 100
         app.MaxChange = 0.001
