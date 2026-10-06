@@ -1208,3 +1208,9 @@ select {
   align-items: baseline;
   flex-shrink: 0;
 }
+.box-note {
+  display: block;
+  color: var(--muted);
+  font-size: var(--step--1);
+  margin-top: 2px;
+}

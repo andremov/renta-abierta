@@ -6,6 +6,7 @@ import type { Model, Workbook } from '../engine/workbook';
 import { EXTRA_BY_KEY } from './rules';
 import { parseInput } from './format';
 import { checkValidation, listOptions, pickOption, validationAt } from './validation';
+import { fieldType } from '../forms/catalog';
 
 export type Normalized = { ok: true; value: Scalar } | { ok: false; error: string };
 
@@ -32,7 +33,9 @@ export function normalizeInput(model: Model, wb: Workbook, key: string, v: unkno
     if (match !== undefined) value = nf !== '@' && /^-?(0|[1-9]\d*)$/.test(match) ? Number(match) : match;
     else if (strict) return { ok: false, error: `${key}: «${v}» no está en la lista de opciones.` };
   } else if (typeof v === 'string') {
-    const parsed = parseInput(v, nf);
+    // same reading as the form field: text columns stay text whatever their number format
+    const type = fieldType(model, key);
+    const parsed = parseInput(v, type === 'text' ? '@' : type === 'id' ? '0' : nf);
     if (parsed !== null && typeof parsed === 'object' && 'error' in parsed) return { ok: false, error: `${key}: ${parsed.error}` };
     value = parsed as Scalar;
   } else if (nf === '@') value = String(v);

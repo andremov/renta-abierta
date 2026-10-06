@@ -33,6 +33,18 @@ describe('field catalog', () => {
     expect(data.fields.every((f) => f.label.trim())).toBe(true);
     expect(keys).toContain('DatosGenerales!E8');
   });
+  it('labels table columns from the real header row', () => {
+    const at = (k: string) => data.fields.find((f) => f.key === k)!;
+    // the merged "Total aportes…" rows between header and table are not the header
+    expect([at('Ing_No_Const_Hon_Com!B11').label, at('Ing_No_Const_Hon_Com!C11').type, at('Ing_No_Const_Hon_Com!E11').label]).toEqual([
+      'Nombre o razón social (registro 1)',
+      'id',
+      'Total aportes (registro 1)',
+    ]);
+    expect(at('APORTES AFC, AVC PEN!D7').type).toBe('text');
+    expect([at('Comfacelec!E7').label, at('Comfacelec!F7').label]).toEqual(['Número de la factura electrónica', 'Fecha de expedición de la factura']);
+    expect(data.fields.some((f) => /^Dato \d|^Casilla [A-Z]+\d/.test(f.label) && f.key.startsWith('Ing_No_Const'))).toBe(false);
+  });
   it('public/campos.json is up to date', () => {
     // one entry per line: readable diffs, a fraction of the size of indented JSON
     const list = (xs: unknown[]) => `[\n${xs.map((x) => JSON.stringify(x)).join(',\n')}\n]`;

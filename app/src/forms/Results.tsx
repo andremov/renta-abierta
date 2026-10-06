@@ -17,6 +17,14 @@ export interface Casilla {
 const BOXES = CASILLAS as Casilla[];
 
 const FORM = 'Formulario';
+
+/** Notes under a box when its value depends on something still missing. */
+const NOTES: Record<number, (s: Session) => string | null> = {
+  133: (s) =>
+    s.raw('DatosGenerales', 'C11') === null
+      ? 'El anticipo depende del número de años que ha declarado (Datos generales). Mientras no lo diligencie queda en 0 y el saldo a pagar puede verse más bajo.'
+      : null,
+};
 const money = (v: Scalar) => (typeof v === 'number' ? formatValue(v, '"$"\\ #,##0') : '—');
 
 function boxValue(session: Session, b: Casilla): Scalar {
@@ -88,7 +96,7 @@ export function ResultsPage({ session, go, openForm }: { session: Session; go: (
 
       {sections.map((sec) => {
         const rows = BOXES.filter((b) => b.section === sec).map((b) => ({ b, v: boxValue(session, b) }));
-        const shown = rows.filter(({ v }) => showZero || (v !== null && v !== '' && v !== 0));
+        const shown = rows.filter(({ b, v }) => showZero || (v !== null && v !== '' && v !== 0) || NOTES[b.n]?.(session));
         if (!shown.length) return null;
         return (
           <section key={sec} className="box-section">
@@ -110,7 +118,10 @@ export function ResultsPage({ session, go, openForm }: { session: Session; go: (
                 {shown.map(({ b, v }) => (
                   <tr key={b.n} data-casilla={b.n}>
                     <td className="num n">{b.n}</td>
-                    <td>{b.concept}</td>
+                    <td>
+                      {b.concept}
+                      {NOTES[b.n]?.(session) && <small className="box-note">{NOTES[b.n](session)}</small>}
+                    </td>
                     <td className="num r">{display(b, v) || '0'}</td>
                     <td>
                       <CopyButton text={display(b, v).replace(/\./g, '') || '0'} label={`Copiar casilla ${b.n}`} />

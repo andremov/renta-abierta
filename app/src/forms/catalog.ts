@@ -63,3 +63,11 @@ export function catalogFor(model: Model): CatalogEntry[] {
   if (!c) cache.set(model, (c = fieldCatalog(model)));
   return c;
 }
+
+const types = new WeakMap<Model, Map<string, FieldType>>();
+/** The form's field type for an input key (how typed text is read). */
+export function fieldType(model: Model, key: string): FieldType | undefined {
+  let t = types.get(model);
+  if (!t) types.set(model, (t = new Map(catalogFor(model).map((e) => [e.key, e.type]))));
+  return t.get(key);
+}
