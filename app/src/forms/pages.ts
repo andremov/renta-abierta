@@ -135,6 +135,10 @@ export const GROUPS: GroupDef[] = [
         blurb: 'Ingresos de empleadores, cesantías y aportes; honorarios sin costos ni gastos.',
         // honorarios declared without costs (25 % exemption) are entered here, as in DIAN's file
         when: ['salario', 'independiente'],
+        guide: [
+          'El programa de la DIAN tiene tres bloques de empleadores o contratantes y no admite más. Si tuvo más de tres, sume los valores de los demás en el tercer bloque, concepto por concepto, y escriba ahí el nombre y NIT del pagador principal de ese grupo. El formulario 210 usa los totales, así que el resultado es el mismo.',
+          'Excepción: las preguntas sobre el salario (fuerza pública, primas y complementos) y sobre gastos de representación se responden por empleador. No sume en el tercer bloque a un empleador al que le aplique alguna de ellas junto con otro pagador.',
+        ],
         sheets: [
           { sheet: 'Salarios_Demas_Pagos_Laborales' },
           { sheet: 'Datos_Salarios', title: 'Preguntas sobre el salario' },
@@ -151,7 +155,7 @@ export const GROUPS: GroupDef[] = [
         when: ['independiente'],
         guide: [
           'Los honorarios y pagos por servicios se registran en uno de tres lugares, según cómo los declare:',
-          '• Sin costos ni gastos (usa la renta exenta del 25 %): en «Salarios y pagos laborales», fila «Ingresos por honorarios, prestación de servicios y otras rentas de trabajo sin costos ni gastos», una por contratante. Van a la casilla 32.',
+          '• Sin costos ni gastos (usa la renta exenta del 25 %): en «Salarios y pagos laborales», fila «Ingresos por honorarios, prestación de servicios y otras rentas de trabajo sin costos ni gastos», una por contratante. Van a la casilla 32. Allí hay tres bloques de pagadores; con más de tres, sume los demás en el tercero.',
           '• Con costos y gastos: en esta sección, «Ingresos por rentas de trabajo que no provengan de una relación laboral», con el nombre o NIT de quien pagó y el número de meses. Van a la casilla 43. Los ingresos del exterior tienen su propia tabla en esta misma sección, separada por países con y sin convenio para evitar la doble tributación.',
           '• Como rentas no laborales: en «Honorarios como renta no laboral». Van a la casilla 74.',
           'Un pago de un cliente del exterior recibido por una plataforma de pagos colombiana suele no tener retención ni aparecer en la información exógena, pero igual se declara. Si el servicio se prestó desde Colombia, puede ser de fuente nacional aunque el cliente esté afuera (artículo 24 del Estatuto Tributario): confirme con un contador en cuál tabla registrarlo.',
@@ -174,6 +178,12 @@ export const GROUPS: GroupDef[] = [
         title: 'Intereses, arriendos y otras rentas de capital',
         blurb: 'Rendimientos financieros, arrendamientos y regalías.',
         when: ['intereses', 'arriendos'],
+        guide: [
+          'Los intereses van en una de tres tablas, según lo que diga el certificado de la entidad:',
+          '• El certificado muestra la parte no gravada por componente inflacionario (lo usual en cuentas de ahorro y CDT en Colombia): primera tabla. Escriba solo el valor «No gravado» del certificado; el programa calcula la parte gravada con el componente inflacionario de 2025 (55,43 % no gravado) y muestra el total. La retención en la fuente va en su propia columna.',
+          '• El certificado no muestra parte no gravada (todo es gravado): tabla «Intereses y rendimientos financieros gravados en el 100 %». Escriba el total en «Gravados».',
+          '• El certificado muestra una parte no gravada distinta del componente inflacionario: tercera tabla, con los dos valores tal como aparecen.',
+        ],
         sheets: [
           { sheet: 'Inter_Rend_Finan', title: 'Intereses y rendimientos financieros' },
           { sheet: 'Otros_Ing_No_Rel', title: 'Arrendamientos, regalías y otros' },

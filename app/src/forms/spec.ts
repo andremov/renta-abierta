@@ -65,6 +65,14 @@ const EXTRA_HEADINGS: Record<string, Record<number, string>> = {
   DatosGenerales: { 33: 'Dependiente económico 2', 51: 'Dependiente económico 5' },
 };
 
+/** Columns whose header cell DIAN left blank; meaning taken from the sheet's validation messages. */
+const COLUMN_LABELS: Record<string, Record<string, string>> = {
+  Comfacelec: { E: 'Número de la factura electrónica', F: 'Fecha de expedición de la factura' },
+};
+
+/** Helper text the VBA reads (cell references, help-table names), not labels for people. */
+const isHelperText = (s: string) => /^\$?[A-Z]{1,3}\$?\d+(:\$?[A-Z]{1,3}\$?\d+)?$/.test(s) || /^AY_[A-Z_]+$/.test(s);
+
 type Item = { c: number; kind: 'L' | 'I' | 'F'; a1: string; text: string; cell?: ModelCell; extra?: ExtraInput };
 
 const tidy = (s: string) =>
@@ -105,7 +113,7 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
     if (x) add(r, { c, kind: 'I', a1, text: '', cell, extra: x });
     else if (cell.in) add(r, { c, kind: 'I', a1, text: '', cell });
     else if (cell.f !== undefined) add(r, { c, kind: 'F', a1, text: '', cell });
-    else if (typeof cell.v === 'string' && tidy(cell.v) && !/^\d+$/.test(cell.v.trim())) add(r, { c, kind: 'L', a1, text: tidy(cell.v), cell });
+    else if (typeof cell.v === 'string' && tidy(cell.v) && !/^\d+$/.test(cell.v.trim()) && !isHelperText(cell.v.trim())) add(r, { c, kind: 'L', a1, text: tidy(cell.v), cell });
   }
   for (const x of extras)
     if (!sh.cells[x.cell]) {
@@ -152,12 +160,13 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
     if (s0 && j - i >= 3) for (let k = i; k < j; k++) tableOf.set(order[k], order[i]);
     i = Math.max(j, i + 1);
   }
-  /** The heading row of a table: nearest row above with 2+ labels and no inputs. */
+  /** The heading row of a table: nearest row above with 2+ labels and no inputs or formulas
+   *  (rows of label + computed total between the header and the table are not headers). */
   const tableHeaderRow = (t0: number): number | undefined => {
     for (let k = t0 - 1; k >= Math.max(0, t0 - 10); k--) {
       const list = rows.get(k);
       if (!list) continue;
-      if (list.filter((i) => i.kind === 'L').length >= 2 && !list.some((i) => i.kind === 'I')) return k;
+      if (list.filter((i) => i.kind === 'L').length >= 2 && !list.some((i) => i.kind !== 'L')) return k;
     }
     return undefined;
   };
@@ -237,7 +246,8 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
       const columns: TableColumn[] = [];
       for (const it of cols) {
         if (it.c < firstInput || it.c > lastCol) continue;
-        let label = hdr !== undefined ? (labelCovering(hdr, it.c) ?? (hdr > 0 ? labelCovering(hdr - 1, it.c) : undefined)) : undefined;
+        let label: string | undefined = COLUMN_LABELS[sh.name]?.[colLetter(it.c)];
+        label ??= hdr !== undefined ? (labelCovering(hdr, it.c) ?? (hdr > 0 ? labelCovering(hdr - 1, it.c) : undefined)) : undefined;
         label ??= headerAbove(t0, it.c);
         const kind = it.kind === 'I' ? 'input' : 'calc';
         if (!label) {
@@ -286,7 +296,9 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
         continue;
       }
       if (it.kind === 'I') {
-        const label = pending ?? headerAbove(r, it.c) ?? `Casilla ${it.a1}`;
+        const fixed = COLUMN_LABELS[sh.name]?.[colLetter(it.c)];
+        if (fixed && pending) cur().blocks.push({ t: 'text', text: pending }); // the row's own caption, e.g. DIAN's casilla 299 line
+        const label = fixed ?? pending ?? headerAbove(r, it.c) ?? `Casilla ${it.a1}`;
         fs.push(fieldOf(it, r, label, 'input'));
         pending = undefined;
       } else if (pending) {
@@ -300,6 +312,12 @@ export function buildSpec(model: Model, sh: ModelSheet, title: string): FormSpec
   }
 
   return { sheet: sh.name, title, intro, parts: groupRepeats(sections.filter((s) => s.blocks.length)) };
+}
+
+function colLetter(c: number): string {
+  let s = '';
+  for (c += 1; c > 0; c = Math.floor((c - 1) / 26)) s = String.fromCharCode(65 + ((c - 1) % 26)) + s;
+  return s;
 }
 
 function cleanHeading(s: string): string {
@@ -317,6 +335,8 @@ function inferType(nf: string | undefined, dv: Validation | null, label: string)
     return 'select';
   }
   if (/\(marque\s*x\)|marque \(x\)/i.test(label)) return 'check';
+  // a column headed "Concepto"/"Nombre" is text even when DIAN gave it a currency format
+  if (/^(concepto|nombre|raz[oó]n social|descripci[oó]n)\b/i.test(label.trim())) return 'text';
   if (/\bnit\b|identificaci[oó]n|c\.c\./i.test(label) && !/valor/i.test(label)) return 'id';
   if (/nombre|raz[oó]n social|descripci[oó]n|direcci[oó]n|entidad|concepto|ubicaci[oó]n|pa[ií]s|ciudad|apellido|sociedad/i.test(label) && !(nf && nf.includes('$')))
     return 'text';
