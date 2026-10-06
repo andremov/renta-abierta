@@ -25,6 +25,8 @@ export interface PageDef {
   sheets: { sheet: string; title?: string; when?: string[] }[];
   /** shown when any of these questions is answered yes; omitted = always */
   when?: string[];
+  /** orientation shown on the page's first step (paragraphs) */
+  guide?: string[];
 }
 
 export interface GroupDef {
@@ -130,8 +132,9 @@ export const GROUPS: GroupDef[] = [
       {
         id: 'salario',
         title: 'Salarios y pagos laborales',
-        blurb: 'Ingresos de empleadores, cesantías y aportes.',
-        when: ['salario'],
+        blurb: 'Ingresos de empleadores, cesantías y aportes; honorarios sin costos ni gastos.',
+        // honorarios declared without costs (25 % exemption) are entered here, as in DIAN's file
+        when: ['salario', 'independiente'],
         sheets: [
           { sheet: 'Salarios_Demas_Pagos_Laborales' },
           { sheet: 'Datos_Salarios', title: 'Preguntas sobre el salario' },
@@ -146,9 +149,16 @@ export const GROUPS: GroupDef[] = [
         title: 'Honorarios y trabajo independiente',
         blurb: 'Ingresos sin relación laboral, sus costos y gastos.',
         when: ['independiente'],
+        guide: [
+          'Los honorarios y pagos por servicios se registran en uno de tres lugares, según cómo los declare:',
+          '• Sin costos ni gastos (usa la renta exenta del 25 %): en «Salarios y pagos laborales», fila «Ingresos por honorarios, prestación de servicios y otras rentas de trabajo sin costos ni gastos», una por contratante. Van a la casilla 32.',
+          '• Con costos y gastos: en esta sección, «Ingresos por rentas de trabajo que no provengan de una relación laboral», con el nombre o NIT de quien pagó y el número de meses. Van a la casilla 43. Los ingresos del exterior tienen su propia tabla en esta misma sección, separada por países con y sin convenio para evitar la doble tributación.',
+          '• Como rentas no laborales: en «Honorarios como renta no laboral». Van a la casilla 74.',
+          'Un pago de un cliente del exterior recibido por una plataforma de pagos colombiana suele no tener retención ni aparecer en la información exógena, pero igual se declara. Si el servicio se prestó desde Colombia, puede ser de fuente nacional aunque el cliente esté afuera (artículo 24 del Estatuto Tributario): confirme con un contador en cuál tabla registrarlo.',
+        ],
         sheets: [
           { sheet: 'Rentas_Trabajo_ Hon_Com' },
-          { sheet: 'Hon_Com_Serv', title: 'Ingresos del exterior' },
+          { sheet: 'Hon_Com_Serv', title: 'Honorarios como renta no laboral' },
           { sheet: 'Ing_No_Const_Hon_Com', title: 'Ingresos no constitutivos de renta' },
           { sheet: 'Compras', title: 'Compras' },
           { sheet: 'Gastos_Personal', title: 'Gastos de personal' },

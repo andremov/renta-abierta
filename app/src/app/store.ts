@@ -4,15 +4,26 @@ import { useSyncExternalStore } from 'react';
 import { Model, Workbook } from '../engine/workbook';
 import { XErr, type Scalar } from '../engine/types';
 import { CLEAR_ON_EDIT, inactiveKeys } from './rules';
+import { normalizeInput } from './api';
+import type { Exogena, ExoStatus } from './exogena';
 
 const STORAGE_KEY = 'renta-ag2025:inputs:v1';
 const PROFILE_KEY = 'renta-ag2025:profile:v1';
+const PENDING_KEY = 'renta-ag2025:pending:v1';
+const EXOGENA_KEY = 'renta-ag2025:exogena:v1';
 
 /** Questionnaire answers: question id -> yes/no. */
 export type Profile = Record<string, boolean>;
 export const FILE_KIND = 'ayuda-renta-ag2025';
 
 export type Inputs = Record<string, Scalar>; // "Sheet!A1" -> value
+/** Fields marked "pendiente por confirmar": "Sheet!A1" -> note (may be empty). */
+export type Pending = Record<string, string>;
+
+export interface ImportReport {
+  /** keys that are not inputs of this program, or whose value could not be read */
+  skipped: string[];
+}
 
 export class Session {
   wb: Workbook;
@@ -22,15 +33,22 @@ export class Session {
   /** inputs that currently count as blank (hidden wizard rows, pop-up values whose trigger is off) */
   inactive = new Set<string>();
   profile: Profile = {};
+  pending: Pending = {};
+  /** DIAN's third-party report, loaded by the person for comparison */
+  exogena: Exogena | null = null;
   /** transient UI state (e.g. how many repeated items the person opened); not saved */
   ui: Record<string, number> = {};
   private listeners = new Set<() => void>();
+  /** fields with text typed but not yet saved register here, so it is saved before export or navigation */
+  private flushers = new Set<() => void>();
 
   constructor(readonly model: Model) {
     this.wb = new Workbook(model);
     const saved = readStorage(STORAGE_KEY);
     if (saved) this.inputs = saved as Inputs;
     this.profile = (readStorage(PROFILE_KEY) as Profile) ?? {};
+    this.pending = (readStorage(PENDING_KEY) as Pending) ?? {};
+    this.exogena = (readStorage(EXOGENA_KEY) as Exogena) ?? null;
     this.applyAll();
   }
 
@@ -100,6 +118,44 @@ export class Session {
     this.emit();
   }
 
+  onFlush(fn: () => void): () => void {
+    this.flushers.add(fn);
+    return () => this.flushers.delete(fn);
+  }
+
+  /** Save whatever is typed in a field but not committed yet. */
+  flush() {
+    this.flushers.forEach((f) => f());
+  }
+
+  /** Mark a field as "pendiente por confirmar" (note may be empty), or clear the mark with null. */
+  setPending(key: string, note: string | null) {
+    if (note === null) delete this.pending[key];
+    else this.pending[key] = note;
+    writeStorage(PENDING_KEY, this.pending);
+    this.emit();
+  }
+
+  setExogena(x: Exogena | null) {
+    this.exogena = x;
+    if (x) writeStorage(EXOGENA_KEY, x);
+    else
+      try {
+        localStorage.removeItem(EXOGENA_KEY);
+      } catch {
+        /* ignore */
+      }
+    this.emit();
+  }
+
+  setExoStatus(i: number, estado: ExoStatus | null) {
+    const row = this.exogena?.rows[i];
+    if (!row) return;
+    if (estado) row.estado = estado;
+    else delete row.estado;
+    this.setExogena({ ...this.exogena! });
+  }
+
   setUi(key: string, value: number) {
     this.ui[key] = value;
     this.emit();
@@ -117,15 +173,13 @@ export class Session {
   }
 
   /** Replace all inputs (import / reset). */
-  replace(inputs: Inputs, profile: Profile = {}) {
+  replace(inputs: Inputs, profile: Profile = {}, pending: Pending = {}) {
     this.wb = new Workbook(this.model);
     this.inputs = { ...inputs };
     this.profile = { ...profile };
-    try {
-      localStorage.setItem(PROFILE_KEY, JSON.stringify(this.profile));
-    } catch {
-      /* ignore */
-    }
+    this.pending = { ...pending };
+    writeStorage(PROFILE_KEY, this.profile);
+    writeStorage(PENDING_KEY, this.pending);
     this.inactive = new Set();
     this.applyAll();
     this.persist();
@@ -133,26 +187,52 @@ export class Session {
   }
 
   exportJSON(): string {
+    this.flush();
     return JSON.stringify(
-      { kind: FILE_KIND, version: 1, exportedAt: new Date().toISOString(), profile: this.profile, inputs: this.inputs },
+      {
+        kind: FILE_KIND,
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        profile: this.profile,
+        inputs: this.inputs,
+        pending: this.pending,
+        ...(this.exogena ? { exogena: this.exogena } : {}),
+      },
       null,
       1,
     );
   }
 
-  importJSON(text: string) {
-    const data = JSON.parse(text);
-    if (data?.kind !== FILE_KIND || typeof data.inputs !== 'object')
+  /**
+   * Load a backup. Hand-made files are welcome: only `inputs` is required (format in docs/respaldo.md);
+   * values are converted like typed text, and keys that are not inputs are skipped and reported.
+   */
+  importJSON(text: string): ImportReport {
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error('El archivo no es JSON válido.');
+    }
+    if (!data || typeof data !== 'object' || (data.kind !== undefined && data.kind !== FILE_KIND) || !data.inputs || typeof data.inputs !== 'object')
       throw new Error('El archivo no es un respaldo de esta herramienta.');
     const clean: Inputs = {};
+    const skipped: string[] = [];
     for (const [k, v] of Object.entries(data.inputs)) {
-      if (typeof k === 'string' && k.includes('!') && (typeof v === 'number' || typeof v === 'string' || typeof v === 'boolean'))
-        clean[k] = v;
+      const n = normalizeInput(this.model, this.wb, k, v, false);
+      if (n.ok) {
+        if (n.value !== null) clean[k] = n.value;
+      } else skipped.push(k);
     }
     const profile: Profile = {};
     if (data.profile && typeof data.profile === 'object')
       for (const [k, v] of Object.entries(data.profile)) if (typeof v === 'boolean') profile[k] = v;
-    this.replace(clean, profile);
+    const pending: Pending = {};
+    if (data.pending && typeof data.pending === 'object')
+      for (const [k, v] of Object.entries(data.pending)) if (typeof v === 'string') pending[k] = v;
+    this.replace(clean, profile, pending);
+    this.setExogena(data.exogena && typeof data.exogena === 'object' && Array.isArray(data.exogena.rows) ? (data.exogena as Exogena) : null);
+    return { skipped };
   }
 
   private persist() {
@@ -168,6 +248,14 @@ export class Session {
 export function splitKey(k: string): [string, string] {
   const i = k.lastIndexOf('!');
   return [k.slice(0, i), k.slice(i + 1)];
+}
+
+function writeStorage(key: string, v: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(v));
+  } catch {
+    /* storage blocked: data lives in memory only */
+  }
 }
 
 function readStorage(key: string): unknown {

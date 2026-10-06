@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { Model } from './engine/workbook';
 import { Session } from './app/store';
 import { Shell } from './app/Shell';
+import { installBrowserApi } from './app/browserApi';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -16,6 +17,7 @@ export default function App() {
       .then((m) => {
         const s = new Session(m);
         if (import.meta.env.DEV) Object.assign(window, { __session: s });
+        installBrowserApi(s);
         setSession(s);
       })
       .catch((e) => setError(String(e.message ?? e)));

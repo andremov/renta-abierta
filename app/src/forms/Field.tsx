@@ -1,10 +1,10 @@
 // One form field bound to a workbook cell.
-import { useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Scalar } from '../engine/types';
 import { XErr } from '../engine/types';
 import type { Session } from '../app/store';
 import { dateToSerial, editText, formatValue, parseInput, serialToDate } from '../app/format';
-import { checkValidation, listOptions, type Validation } from '../app/validation';
+import { checkValidation, listOptions, pickOption, tidyOption, type Validation } from '../app/validation';
 import type { CellHelp } from '../app/nav';
 import type { FieldType } from './spec';
 
@@ -32,6 +32,8 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
   const [draft, setDraft] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const key = `${sheet}!${a1}`;
+  const pendingNote = session.pending[key];
   const options = useMemo(
     () => (type === 'select' && dv ? listOptions(session.wb, si, a1, dv) ?? [] : []),
     // options can depend on other answers (e.g. year lists), so refresh on every recalculation
@@ -39,26 +41,53 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
     [type, dv, si, a1, session.version],
   );
 
-  const commit = (v: Scalar) => {
+  /** `live`: saving while the person is still typing; keeps their text as typed and stays quiet on errors. */
+  const commit = (v: Scalar, live = false) => {
     const err = (dv ? checkValidation(session.wb, si, a1, dv, v) : null) ?? check?.(v) ?? null;
     if (err) {
-      setError(err);
+      if (!live) setError(err);
       return;
     }
     setError(null);
-    setDraft(null);
-    if (v !== value) session.set(sheet, a1, v);
+    if (!live) setDraft(null);
+    if (v !== session.raw(sheet, a1)) session.set(sheet, a1, v);
   };
-  const commitText = (raw: string) => {
+  const commitText = (raw: string, live = false) => {
     const effNf = type === 'money' ? nf ?? MONEY_NF : type === 'id' ? '0' : type === 'text' ? '@' : nf;
     const parsed = parseInput(raw, effNf);
-    if (parsed !== null && typeof parsed === 'object' && 'error' in parsed) return setError(parsed.error);
-    if (type === 'text' && typeof parsed === 'string' && /^\d+$/.test(parsed) && /^0|#/.test(nf ?? '')) return commit(Number(parsed));
-    commit(parsed as Scalar);
+    if (parsed !== null && typeof parsed === 'object' && 'error' in parsed) return live || setError(parsed.error);
+    if (type === 'text' && typeof parsed === 'string' && /^\d+$/.test(parsed) && /^0|#/.test(nf ?? '')) return commit(Number(parsed), live);
+    commit(parsed as Scalar, live);
   };
+  const commitDraft = (raw: string, live = false) => (type === 'select' ? commitPick(raw, live) : commitText(raw, live));
+
+  // Typed text is saved shortly after the last keystroke, not only on blur, and whatever is still
+  // pending is saved when the field goes away (Continuar, jumping to another step, closing the tab).
+  const pending = useRef<string | null>(null);
+  pending.current = draft;
+  const flush = useRef(() => {});
+  flush.current = () => {
+    if (pending.current !== null) commitDraft(pending.current, true);
+  };
+  useEffect(() => {
+    if (draft === null) return;
+    const t = setTimeout(() => flush.current(), 400);
+    return () => clearTimeout(t);
+  }, [draft]);
+  useEffect(() => {
+    const onHide = () => flush.current();
+    addEventListener('pagehide', onHide);
+    const unregister = session.onFlush(onHide);
+    return () => {
+      removeEventListener('pagehide', onHide);
+      unregister();
+      flush.current();
+    };
+  }, [session]);
 
   const describedBy = [error && `${id}-err`, help && showHelp && `${id}-help`, dv?.prompt && `${id}-hint`].filter(Boolean).join(' ') || undefined;
-  const common = { id, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy };
+  // `name`/`data-cell` are stable handles for testers and assistive tools ("Sheet!A1", as in backups)
+  const common = { id, name: `${sheet}!${a1}`, 'data-cell': `${sheet}!${a1}`, 'aria-invalid': error ? true : undefined, 'aria-describedby': describedBy };
 
   let control;
   switch (type) {
@@ -99,14 +128,14 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
             <input
               {...common}
               list={`${id}-list`}
-              value={draft ?? current}
+              value={draft ?? tidyOption(current)}
               placeholder="Escriba para buscar…"
               onChange={(e) => setDraft(e.target.value)}
               onBlur={(e) => draft !== null && commitPick(e.target.value)}
             />
             <datalist id={`${id}-list`}>
               {options.map((o) => (
-                <option key={o} value={o} />
+                <option key={o} value={tidyOption(o)} />
               ))}
             </datalist>
           </>
@@ -164,12 +193,13 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
     }
   }
 
-  function commitPick(raw: string) {
-    if (!raw) return commit(null);
-    const match = options.find((o) => o.toUpperCase() === raw.trim().toUpperCase());
-    if (!match) return setError('Elija una opción de la lista.');
-    const n = /^-?\d+$/.test(match) ? Number(match) : null;
-    commit(n ?? match);
+  function commitPick(raw: string, live = false) {
+    if (!raw.trim()) return commit(null, live);
+    const match = pickOption(options, raw);
+    if (!match) return live || setError('Elija una opción de la lista.');
+    // codes like "0010" are text in the workbook; only plain numbers become numbers
+    const n = nf !== '@' && /^-?(0|[1-9]\d*)$/.test(match) ? Number(match) : null;
+    commit(n ?? match, live);
   }
 
   return (
@@ -178,11 +208,22 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
         <label id={`${id}-label`} htmlFor={type === 'yesno' ? undefined : id}>
           {label}
         </label>
+        <span className="field-tools">
         {help?.text && (
           <button type="button" className="help-toggle" aria-expanded={showHelp} aria-controls={`${id}-help`} onClick={() => setShowHelp(!showHelp)}>
             {showHelp ? 'Ocultar ayuda' : 'Ayuda'}
           </button>
         )}
+        <button
+          type="button"
+          className={`pending-toggle${pendingNote !== undefined ? ' on' : ''}`}
+          aria-pressed={pendingNote !== undefined}
+          title="Marque el dato como pendiente para revisarlo antes de presentar"
+          onClick={() => session.setPending(key, pendingNote !== undefined ? null : '')}
+        >
+          {pendingNote !== undefined ? 'Pendiente ✓' : 'Pendiente'}
+        </button>
+        </span>
       </div>
       {dv?.prompt && !compact && (
         <p id={`${id}-hint`} className="hint">
@@ -196,6 +237,15 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
         </p>
       )}
       {!error && warning && <p className="field-warn">{warning}</p>}
+      {pendingNote !== undefined && (
+        <input
+          className="pending-note"
+          aria-label={`Nota sobre lo pendiente: ${label}`}
+          placeholder="¿Qué falta confirmar? (opcional)"
+          value={pendingNote}
+          onChange={(e) => session.setPending(key, e.target.value)}
+        />
+      )}
       {help && showHelp && (
         <div id={`${id}-help`} className="help-box">
           {help.title && <strong>{help.title}</strong>}

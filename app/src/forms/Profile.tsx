@@ -5,7 +5,9 @@ import { QUESTIONS, type Question } from './pages';
 export function ProfilePage({ session, onDone }: { session: Session; onDone: () => void }) {
   const common = QUESTIONS.filter((q) => !q.advanced);
   const advanced = QUESTIONS.filter((q) => q.advanced);
-  const answered = QUESTIONS.filter((q) => q.id in session.profile).length;
+  // the collapsed questions are optional (unanswered counts as "no"), so only the visible ones are counted
+  const answered = common.filter((q) => q.id in session.profile).length;
+  const answeredAdvanced = advanced.filter((q) => q.id in session.profile).length;
   return (
     <div className="profile">
       <h1>Cuéntenos sobre su 2025</h1>
@@ -15,7 +17,12 @@ export function ProfilePage({ session, onDone }: { session: Session; onDone: () 
       </p>
       <QuestionList qs={common} session={session} />
       <details className="advanced" open={advanced.some((q) => session.profile[q.id])}>
-        <summary>Situaciones menos comunes</summary>
+        <summary>
+          Situaciones menos comunes{' '}
+          <span className="muted">
+            (opcional{answeredAdvanced ? `, ${answeredAdvanced} respondidas` : '; si no las abre, cuentan como «No»'})
+          </span>
+        </summary>
         <QuestionList qs={advanced} session={session} />
       </details>
       <div className="actions">
@@ -23,7 +30,7 @@ export function ProfilePage({ session, onDone }: { session: Session; onDone: () 
           Continuar
         </button>
         <span className="muted">
-          {answered} de {QUESTIONS.length} preguntas respondidas
+          {answered} de {common.length} preguntas respondidas
         </span>
       </div>
     </div>
