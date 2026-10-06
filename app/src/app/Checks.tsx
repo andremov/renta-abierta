@@ -1,6 +1,7 @@
 // Completeness checks the Excel file enforced in VBA (Validar) before leaving Datos generales,
 // plus rules DIAN wrote but that never fire in Excel. Shown as a to-do list, not a blocker.
 import type { Session } from './store';
+import { catalogFor } from '../forms/catalog';
 
 interface Check {
   sheet: string;
@@ -44,7 +45,10 @@ const CHECKS: Check[] = [
 
 export function Pending({ session, go }: { session: Session; go: (sheet: string) => void }) {
   const failing = CHECKS.filter((c) => c.failed(session));
-  if (!failing.length) return null;
+  // fields the person marked "pendiente por confirmar"
+  const marked = Object.entries(session.pending);
+  const byKey = new Map(marked.length ? catalogFor(session.model).map((e) => [e.key, e]) : []);
+  if (!failing.length && !marked.length) return null;
   return (
     <section className="pending" aria-labelledby="pending-h">
       <h2 id="pending-h">Pendientes antes de presentar</h2>
@@ -56,6 +60,18 @@ export function Pending({ session, go }: { session: Session; go: (sheet: string)
             </button>
           </li>
         ))}
+        {marked.map(([key, note]) => {
+          const e = byKey.get(key);
+          const sheet = key.slice(0, key.lastIndexOf('!'));
+          return (
+            <li key={key}>
+              <button type="button" className="link" onClick={() => go(sheet)}>
+                Por confirmar: {e ? `${e.pageTitle} › ${e.label}` : key}
+              </button>
+              {note && <span className="muted"> — {note}</span>}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

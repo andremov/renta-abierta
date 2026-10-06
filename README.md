@@ -13,6 +13,12 @@ changes to security settings. Unofficial; not affiliated with DIAN.
   requests to the site itself, so the page cannot send data anywhere else.
 - No analytics, cookies, third-party fonts or scripts.
 
+## Filling a draft from outside the forms
+
+Backups can be written by hand or by an assistant, and the open page exposes
+`window.rentaAbierta` for setting values. The format, the field map
+(`/campos.json`) and the API are in [docs/respaldo.md](docs/respaldo.md).
+
 ## How it works
 
 ```

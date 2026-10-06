@@ -108,7 +108,7 @@ export function ResultsPage({ session, go, openForm }: { session: Session; go: (
               </thead>
               <tbody>
                 {shown.map(({ b, v }) => (
-                  <tr key={b.n}>
+                  <tr key={b.n} data-casilla={b.n}>
                     <td className="num n">{b.n}</td>
                     <td>{b.concept}</td>
                     <td className="num r">{display(b, v) || '0'}</td>

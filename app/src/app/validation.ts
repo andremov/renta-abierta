@@ -86,6 +86,18 @@ export function listOptions(wb: Workbook, sheet: number, a1: string, dv: Validat
   }
 }
 
+/** DIAN's list cells are fixed-width ("2   Impuestos de Barranquilla  "): compare without the padding. */
+export const tidyOption = (s: string) => s.replace(/\s+/g, ' ').trim();
+
+/** The list option the person meant: the same text ignoring case and spacing, or just its code ("2", "02", "10" for "0010"). */
+export function pickOption(options: string[], raw: string): string | undefined {
+  const want = tidyOption(raw).toUpperCase();
+  const exact = options.find((o) => tidyOption(o).toUpperCase() === want);
+  if (exact || !/^\d+$/.test(want)) return exact;
+  const byCode = options.filter((o) => Number(/^\s*(\d+)/.exec(o)?.[1] ?? NaN) === Number(want));
+  return byCode.length === 1 ? byCode[0] : undefined;
+}
+
 function evalBound(wb: Workbook, sheet: number, r: number, c: number, f: string | undefined, dv: Validation): Scalar {
   if (f === undefined) return null;
   const n = Number(f);
@@ -108,7 +120,7 @@ export function checkValidation(wb: Workbook, sheet: number, a1: string, dv: Val
       const opts = listOptions(wb, sheet, a1, dv);
       if (!opts) return null;
       const s = typeof v === 'number' ? formatValue(v) : String(v);
-      if (opts.some((o) => o.toUpperCase() === s.toUpperCase())) return null;
+      if (opts.some((o) => tidyOption(o).toUpperCase() === tidyOption(s).toUpperCase())) return null;
       if (/TRM_diaria/i.test(dv.f1 ?? ''))
         return 'Esa fecha no tiene tasa representativa del mercado (TRM) en la tabla de la DIAN. Elija un día con TRM publicada.';
       return dv.error?.trim() || 'Elija una opción de la lista.';

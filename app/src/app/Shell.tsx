@@ -11,12 +11,14 @@ import { StepView } from '../forms/FormPage';
 import { pageSteps, stepHasData, type Step } from '../forms/steps';
 import { ProfilePage } from '../forms/Profile';
 import { ResultsPage } from '../forms/Results';
+import { ExogenaPage } from '../forms/Exogena';
 import { SheetGrid } from './SheetGrid';
 import { Pending } from './Checks';
 
 type Route =
   | { kind: 'home' }
   | { kind: 'profile' }
+  | { kind: 'exogena' }
   | { kind: 'page'; id: string; step?: string }
   | { kind: 'results' }
   | { kind: 'form' };
@@ -24,6 +26,7 @@ type Route =
 function readRoute(): Route {
   const h = location.hash.replace(/^#\/?/, '');
   if (h === 'perfil') return { kind: 'profile' };
+  if (h === 'exogena') return { kind: 'exogena' };
   if (h === 'resultado') return { kind: 'results' };
   if (h === 'formulario') return { kind: 'form' };
   if (h.startsWith('p/')) {
@@ -39,6 +42,8 @@ function href(r: Route): string {
       return '#/';
     case 'profile':
       return '#/perfil';
+    case 'exogena':
+      return '#/exogena';
     case 'results':
       return '#/resultado';
     case 'form':
@@ -71,7 +76,10 @@ export function Shell({ session }: { session: Session }) {
     addEventListener('hashchange', on);
     return () => removeEventListener('hashchange', on);
   }, []);
-  const go = (r: Route) => (location.hash = href(r));
+  const go = (r: Route) => {
+    session.flush();
+    location.hash = href(r);
+  };
   const goSheet = (sheet: string) => {
     const p = ALL_PAGES.find((x) => x.sheets.some((s) => s.sheet === sheet));
     if (p) go({ kind: 'page', id: p.id });
@@ -124,6 +132,7 @@ export function Shell({ session }: { session: Session }) {
 
         <main className="main" ref={mainRef} tabIndex={-1}>
           {route.kind === 'home' && <Home session={session} go={go} />}
+          {route.kind === 'exogena' && <ExogenaPage session={session} />}
           {route.kind === 'profile' && <ProfilePage session={session} onDone={() => next && go(next)} />}
           {route.kind === 'results' && <ResultsPage session={session} go={goSheet} openForm={() => go({ kind: 'form' })} />}
           {route.kind === 'page' &&
@@ -138,6 +147,13 @@ export function Shell({ session }: { session: Session }) {
                 </p>
                 {step.sheetTitle && step.sheetTitle !== step.title && <p className="sheet-kicker">{step.sheetTitle}</p>}
                 <h1>{step.title}</h1>
+                {page.guide && step === pageStepsNow[0] && (
+                  <div className="page-guide">
+                    {page.guide.map((p, i) => (
+                      <p key={i}>{p}</p>
+                    ))}
+                  </div>
+                )}
                 <StepView key={step.id} session={session} step={step} />
               </>
             ) : page ? (
@@ -169,6 +185,7 @@ export function Shell({ session }: { session: Session }) {
 
 function stepTitle(r: Route): string {
   if (r.kind === 'profile') return 'Perfil';
+  if (r.kind === 'exogena') return 'Información exógena';
   if (r.kind === 'results') return 'Resultado';
   if (r.kind === 'page') return ALL_PAGES.find((p) => p.id === r.id)?.title ?? '';
   return 'Inicio';
@@ -198,7 +215,10 @@ function Steps({
   );
   return (
     <>
-      <ul className="steps">{link({ kind: 'profile' }, 'Perfil', cur === '#/perfil')}</ul>
+      <ul className="steps">
+        {link({ kind: 'profile' }, 'Perfil', cur === '#/perfil')}
+        {link({ kind: 'exogena' }, 'Información exógena (opcional)', cur === '#/exogena')}
+      </ul>
       {GROUPS.map((g) => {
         const pages = g.pages.filter((p) => byPage.has(p.id));
         if (!pages.length) return null;
@@ -378,8 +398,12 @@ function Backups({ session }: { session: Session }) {
   const open = async (f: File | undefined) => {
     if (!f) return;
     try {
-      session.importJSON(await f.text());
-      setMsg('Respaldo cargado.');
+      const { skipped } = session.importJSON(await f.text());
+      setMsg(
+        skipped.length
+          ? `Respaldo cargado. ${skipped.length} ${skipped.length === 1 ? 'valor no se reconoció' : 'valores no se reconocieron'}: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? '…' : ''}`
+          : 'Respaldo cargado.',
+      );
     } catch (e) {
       setMsg((e as Error).message || 'No se pudo leer el archivo.');
     }
@@ -403,6 +427,7 @@ function Backups({ session }: { session: Session }) {
             className="danger"
             onClick={() => {
               session.replace({});
+              session.setExogena(null);
               setConfirming(false);
               setMsg('Datos borrados.');
             }}
