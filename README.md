@@ -12,6 +12,10 @@ changes to security settings. Unofficial; not affiliated with DIAN.
   person downloads. The Content-Security-Policy (`vercel.json`) only allows
   requests to the site itself, so the page cannot send data anywhere else.
 - No analytics, cookies, third-party fonts or scripts.
+- The look comes from the private `@andremov/brand` package (fonts are self-hosted). Its
+  no-flash theme script is written by `vite.config.ts` as the same-origin file
+  `andremov-theme.js`, because the CSP allows no inline scripts. Vercel needs the `NPM_RC`
+  variable to install the package.
 
 ## Filling a draft from outside the forms
 

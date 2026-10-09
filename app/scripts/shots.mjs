@@ -27,7 +27,7 @@ for (const [label, viewport, scheme] of [
   for (const sh of sheets) {
     await page.goto(`${base}#/${sh}`);
     await page.reload();
-    await page.waitForSelector('.topbar, .print-page', { timeout: 60000 });
+    await page.waitForSelector('header', { timeout: 60000 });
     await page.waitForTimeout(300);
     const file = new URL(`${(sh || 'home').replace(/[^\w-]/g, '_')}-${label}.png`, out);
     if (process.env.FULL) await page.setViewportSize({ width: viewport.width, height: Math.min(6000, await page.evaluate(() => document.querySelector('main')?.scrollHeight ?? 900) + 120) });

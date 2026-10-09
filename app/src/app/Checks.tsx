@@ -1,5 +1,8 @@
 // Completeness checks the Excel file enforced in VBA (Validar) before leaving Datos generales,
 // plus rules DIAN wrote but that never fire in Excel. Shown as a to-do list, not a blocker.
+import { ArrowRight } from 'lucide-react';
+import { Notice } from '@andremov/brand';
+import { Button } from '@andremov/brand/ui/button';
 import type { Session } from './store';
 import { catalogFor } from '../forms/catalog';
 
@@ -50,14 +53,15 @@ export function Pending({ session, go }: { session: Session; go: (sheet: string)
   const byKey = new Map(marked.length ? catalogFor(session.model).map((e) => [e.key, e]) : []);
   if (!failing.length && !marked.length) return null;
   return (
-    <section className="pending" aria-labelledby="pending-h">
-      <h2 id="pending-h">Pendientes antes de presentar</h2>
-      <ul>
+    <Notice tone="warning" title="Pendientes antes de presentar" className="pending">
+      <ul className="grid list-disc gap-0.5 pl-5">
         {failing.map((c) => (
           <li key={c.message}>
-            <button type="button" className="link" onClick={() => go(c.sheet)}>
+            {/* ghost, not link: the link colour fails AA on the warning surface; ghost keeps the notice's ink */}
+            <Button variant="ghost" className="-mx-1 h-auto px-1 py-0.5 whitespace-normal text-left" onClick={() => go(c.sheet)}>
               {c.message}
-            </button>
+              <ArrowRight aria-hidden />
+            </Button>
           </li>
         ))}
         {marked.map(([key, note]) => {
@@ -65,14 +69,15 @@ export function Pending({ session, go }: { session: Session; go: (sheet: string)
           const sheet = key.slice(0, key.lastIndexOf('!'));
           return (
             <li key={key}>
-              <button type="button" className="link" onClick={() => go(sheet)}>
+              <Button variant="ghost" className="-mx-1 h-auto px-1 py-0.5 whitespace-normal text-left" onClick={() => go(sheet)}>
                 Por confirmar: {e ? `${e.pageTitle} › ${e.label}` : key}
-              </button>
-              {note && <span className="muted"> — {note}</span>}
+                <ArrowRight aria-hidden />
+              </Button>
+              {note && <span> — {note}</span>}
             </li>
           );
         })}
       </ul>
-    </section>
+    </Notice>
   );
 }

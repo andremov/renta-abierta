@@ -29,14 +29,14 @@ await start.waitFor();
 out.empezarColors = await start.evaluate((b) => [getComputedStyle(b).backgroundColor, getComputedStyle(b).color]);
 await start.click();
 await page.waitForSelector('.profile');
-out.profileCounter = await page.locator('.profile .actions .muted').innerText();
+out.profileCounter = await page.locator('.profile .actions span').innerText();
 
 // five fields set without blur, then Continuar right away
 await page.goto(`${base}#/p/datos-generales`);
 await page.waitForSelector('[name="DatosGenerales!C6"]');
 const five = { 'DatosGenerales!C6': '80123456', 'DatosGenerales!B8': 'PEREZ', 'DatosGenerales!C8': 'GOMEZ', 'DatosGenerales!D8': 'ANA', 'DatosGenerales!E8': 'FELIPE' };
 for (const [k, v] of Object.entries(five)) await setNoBlur(`[name="${k}"]`, v);
-await page.locator('.pager .primary').click();
+await page.locator('[data-pager=next]').click();
 await page.waitForTimeout(100);
 const s1 = await stored();
 out.fiveSavedOnContinue = Object.keys(five).every((k) => String(s1[k]) === five[k]);
@@ -50,24 +50,24 @@ out.savedWithoutBlur = (await stored())['DatosGenerales!E8'] === 'ANDRES';
 
 // seccional by code, by padded text; activity code 0010
 for (let i = 0; i < 4 && !(await page.locator('[name="DatosGenerales!C9"]').count()); i++) {
-  await page.locator('.pager .primary').click();
+  await page.locator('[data-pager=next]').click();
   await page.waitForTimeout(150);
 }
 const sec = page.locator('[name="DatosGenerales!C9"]');
 await sec.fill('2');
 await sec.press('Tab');
-out.seccionalByCode = [(await stored())['DatosGenerales!C9'], await page.locator('.field-error').count()];
+out.seccionalByCode = [(await stored())['DatosGenerales!C9'], await page.locator('.field [role=alert]').count()];
 await sec.fill('4   Impuestos y Aduanas de Bucaramanga  ');
 await sec.press('Tab');
-out.seccionalPadded = [(await stored())['DatosGenerales!C9'], await page.locator('.field-error').count()];
+out.seccionalPadded = [(await stored())['DatosGenerales!C9'], await page.locator('.field [role=alert]').count()];
 const act = page.locator('[name="DatosGenerales!E9"]');
 await act.fill('0010');
 await act.press('Tab');
-out.activity0010 = [(await stored())['DatosGenerales!E9'], await page.locator('.field-error').count()];
+out.activity0010 = [(await stored())['DatosGenerales!E9'], await page.locator('.field [role=alert]').count()];
 
 // pending mark on a field shows on the results page
 await page.locator('.field', { has: sec }).getByRole('button', { name: 'Pendiente' }).click();
-await page.locator('.pending-note').fill('confirmar con el RUT');
+await page.locator('[aria-label^="Nota sobre lo pendiente"]').fill('confirmar con el RUT');
 
 // browser API
 out.api = await page.evaluate(() => {
@@ -105,8 +105,8 @@ await page.locator('.exogena input[type=file]').setInputFiles({
 });
 await page.waitForSelector('.exogena .box-section');
 out.exogenaSections = await page.locator('.exogena .box-section h2').allInnerTexts();
-await page.locator('.exogena .seg button', { hasText: 'Incluido' }).first().click();
-out.exogenaReviewed = (await page.locator('.exogena > p.muted').innerText()).match(/\d+ revisados/)?.[0];
+await page.locator('.exogena [role=radiogroup] button', { hasText: 'Incluido' }).first().click();
+out.exogenaReviewed = (await page.locator('.exogena > p[data-variant=muted]').innerText()).match(/\d+ revisados/)?.[0];
 
 const campos = await page.evaluate(async (b) => (await fetch(`${b}campos.json`)).json(), base);
 out.camposFields = campos.fields.length;

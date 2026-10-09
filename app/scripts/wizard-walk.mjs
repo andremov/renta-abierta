@@ -15,16 +15,16 @@ await p.reload();
 await p.waitForSelector('.profile');
 const titles = [];
 for (let i = 0; i < 200; i++) {
-  const next = p.locator('.pager .primary');
+  const next = p.locator('[data-pager=next]');
   if (!(await next.count())) break;
   await next.click();
   await p.waitForTimeout(60);
-  titles.push(await p.locator('main h1').first().innerText());
+  titles.push(await p.locator('.main h2').first().innerText());
   if (await p.locator('.results').count()) break;
 }
 let back = 0;
 for (let i = 0; i < 200; i++) {
-  const prev = p.locator('.pager .ghost');
+  const prev = p.locator('[data-pager=prev]');
   if (!(await prev.count())) break;
   await prev.click();
   await p.waitForTimeout(40);
