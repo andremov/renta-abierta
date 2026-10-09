@@ -7,9 +7,12 @@ import { gatedHiddenRows, type ExtraInput } from '../app/rules';
 import { helpTable, sheetByName, type CellHelp } from '../app/nav';
 import { validationAt } from '../app/validation';
 import { formatValue } from '../app/format';
-import { filledRows, type Block, type Field, type Section, type TableColumn } from './spec';
+import { filledRows, type Block, type Field, type Section as SpecSection, type TableColumn } from './spec';
 import type { Step } from './steps';
 import { CalcRow, FieldInput } from './Field';
+import { Plus } from 'lucide-react';
+import { Section, Text } from '@andremov/brand';
+import { Button } from '@andremov/brand/ui/button';
 
 const helpCache = new Map<string, Map<string, CellHelp>>();
 function helpFor(model: Model, sheet: string) {
@@ -30,13 +33,14 @@ export function StepView({ session, step }: { session: Session; step: Step }) {
   const ctx: Ctx = { session, sheet: step.sheet, hidden: gatedHiddenRows(step.sheet, session.raw), help: helpFor(session.model, step.sheet) };
   const r = step.repeat;
   return (
-    <div className="step-body">
+    <div className="step-body grid gap-4">
       {step.intro && <Intro text={step.intro} />}
       <SectionView section={step.section} ctx={ctx} titleOverride="" />
       {r && r.index === r.visible - 1 && r.visible < r.max && (
-        <button type="button" className="add-btn" onClick={() => session.setUi(r.key, r.visible + 1)}>
-          + Agregar otro {r.noun}
-        </button>
+        <Button variant="outline" className="justify-self-start" onClick={() => session.setUi(r.key, r.visible + 1)}>
+          <Plus aria-hidden />
+          Agregar otro {r.noun}
+        </Button>
       )}
     </div>
   );
@@ -46,12 +50,14 @@ function Intro({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
   const short = text.length > 220 ? text.slice(0, text.lastIndexOf(' ', 200)) + '…' : text;
   return (
-    <div className="intro-text">
-      <p>{open ? text : short}</p>
+    <div className="grid justify-items-start gap-1">
+      <Text variant="muted" className="whitespace-pre-line">
+        {open ? text : short}
+      </Text>
       {text.length > 220 && (
-        <button type="button" className="link" onClick={() => setOpen(!open)}>
+        <Button variant="link" className="h-auto p-0" aria-expanded={open} onClick={() => setOpen(!open)}>
           {open ? 'Ver menos' : 'Leer explicación completa'}
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -69,23 +75,22 @@ function hasValue(ctx: Ctx, a1: string) {
   return v !== null && v !== '' && v !== 0 && typeof v !== 'object';
 }
 
-function SectionView({ section, ctx, titleOverride }: { section: Section; ctx: Ctx; titleOverride?: string }) {
+function SectionView({ section, ctx, titleOverride }: { section: SpecSection; ctx: Ctx; titleOverride?: string }) {
   return (
-    <div className="form-section">
-      {(titleOverride ?? section.title) && <h3>{titleOverride ?? section.title}</h3>}
+    <Section title={(titleOverride ?? section.title) || undefined} className="form-section">
       {section.blocks.map((b, i) => (
         <BlockView key={i} block={b} ctx={ctx} />
       ))}
-    </div>
+    </Section>
   );
 }
 
 function BlockView({ block, ctx }: { block: Block; ctx: Ctx }) {
   switch (block.t) {
     case 'heading':
-      return <h4>{block.text}</h4>;
+      return <Text variant="heading">{block.text}</Text>;
     case 'text':
-      return <p className="note-text">{block.text}</p>;
+      return <Text variant="hint" as="p">{block.text}</Text>;
     case 'fields': {
       const fs = block.fields.filter((f) => fieldVisible(f, ctx));
       const inputs = fs.filter((f) => f.kind === 'input');
@@ -93,10 +98,12 @@ function BlockView({ block, ctx }: { block: Block; ctx: Ctx }) {
       return (
         <>
           {inputs.length > 0 && (
-            <div className="fields">
-              {inputs.map((f) => (
-                <FieldView key={f.a1} f={f} ctx={ctx} />
-              ))}
+            <div className="@container">
+              <div className="grid gap-x-5 gap-y-4 @xl:grid-cols-2">
+                {inputs.map((f) => (
+                  <FieldView key={f.a1} f={f} ctx={ctx} />
+                ))}
+              </div>
             </div>
           )}
           {calcs.length > 0 && (
@@ -164,18 +171,21 @@ function TableView({ block, ctx }: { block: Extract<Block, { t: 'table' }>; ctx:
   };
 
   return (
-    <div className="table-block">
-      {shown.length === 0 && <p className="muted">Todavía no hay registros.</p>}
-      <ol className="cards">
+    <div className="grid gap-3">
+      {shown.length === 0 && <Text variant="muted">Todavía no hay registros.</Text>}
+      <ol className="grid gap-3">
         {shown.map((r, i) => (
-          <li key={r} className="card">
-            <div className="card-head">
-              <span className="card-n">Registro {i + 1}</span>
-              <button type="button" className="quiet-btn" onClick={() => remove(r)}>
-                Quitar
-              </button>
-            </div>
-            <div className="fields">
+          <li key={r}>
+            <Section
+              title={`Registro ${i + 1}`}
+              actions={
+                <Button variant="ghost" size="sm" onClick={() => remove(r)}>
+                  Quitar
+                </Button>
+              }
+            >
+            <div className="@container">
+            <div className="grid gap-x-5 gap-y-4 @xl:grid-cols-2">
               {inputCols.map((c) => (
                 <TableCell key={c.c} col={c} r={r} firstRow={block.rows[0]} ctx={ctx} />
               ))}
@@ -194,6 +204,7 @@ function TableView({ block, ctx }: { block: Extract<Block, { t: 'table' }>; ctx:
                   />
                 ))}
             </div>
+            </div>
             {calcCols.some((c) => hasValue(ctx, toA1(r, c.c))) && (
               <div className="calcs">
                 {calcCols
@@ -203,15 +214,19 @@ function TableView({ block, ctx }: { block: Extract<Block, { t: 'table' }>; ctx:
                   ))}
               </div>
             )}
+            </Section>
           </li>
         ))}
       </ol>
       {next !== undefined ? (
-        <button type="button" className="add-btn" onClick={() => setExtraShown((s) => [...s, next])}>
-          + Agregar registro
-        </button>
+        <Button variant="outline" className="justify-self-start" onClick={() => setExtraShown((s) => [...s, next])}>
+          <Plus aria-hidden />
+          Agregar registro
+        </Button>
       ) : (
-        <p className="muted small">Alcanzó el máximo de {block.rows.length} registros de esta tabla.</p>
+        <Text variant="hint" as="p">
+          Alcanzó el máximo de {block.rows.length} registros de esta tabla.
+        </Text>
       )}
     </div>
   );

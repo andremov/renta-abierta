@@ -18,7 +18,7 @@ await nit.press('Enter');
 // the wizard shows a few fields per step: continue until the question appears
 const years = page.getByLabel(/número de años que ha declarado/);
 for (let i = 0; i < 8 && !(await years.count()); i++) {
-  await page.locator('.pager .primary').click();
+  await page.locator('[data-pager=next]').click();
   await page.waitForTimeout(80);
 }
 await years.fill('3');

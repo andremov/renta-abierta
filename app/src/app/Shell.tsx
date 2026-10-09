@@ -1,5 +1,10 @@
-// App chrome: header, step navigation, routing between questionnaire, form pages and results.
+// andremov-brand-check-unique: the wizard (step outline rail, per-step pages, pager) and the printable Form 210 laid out like Excel's print are this tool's own UI
+// App chrome: step navigation, routing between questionnaire, form pages and results.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Printer } from 'lucide-react';
+import { Notice, StatusBadge, Text } from '@andremov/brand';
+import { Button } from '@andremov/brand/ui/button';
+import { Progress } from '@andremov/brand/ui/progress';
 import type { Session } from './store';
 import { useSession } from './store';
 import { sheetByName } from './nav';
@@ -12,8 +17,8 @@ import { pageSteps, stepHasData, type Step } from '../forms/steps';
 import { ProfilePage } from '../forms/Profile';
 import { ResultsPage } from '../forms/Results';
 import { ExogenaPage } from '../forms/Exogena';
+import { HomePage } from '../forms/Home';
 import { SheetGrid } from './SheetGrid';
-import { Pending } from './Checks';
 
 type Route =
   | { kind: 'home' }
@@ -62,16 +67,15 @@ export function isActive(session: Session, p: PageDef): boolean {
   return p.sheets.some(({ sheet }) => keys.some((k) => k.startsWith(`${sheet}!`)));
 }
 
-export function Shell({ session }: { session: Session }) {
+export function Shell({ session, message }: { session: Session; message: string | null }) {
   useSession(session);
   const [route, setRoute] = useState(readRoute);
-  const mainRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const on = () => {
       setRoute(readRoute());
       mainRef.current?.focus({ preventScroll: true });
       window.scrollTo({ top: 0 });
-      mainRef.current?.scrollTo({ top: 0 });
     };
     addEventListener('hashchange', on);
     return () => removeEventListener('hashchange', on);
@@ -102,82 +106,89 @@ export function Shell({ session }: { session: Session }) {
   const [navOpen, setNavOpen] = useState(false);
   useEffect(() => setNavOpen(false), [here]);
 
-  if (route.kind === 'form') return <PrintableForm session={session} onBack={() => go({ kind: 'results' })} />;
+  const notice = message && (
+    <Notice tone="info" className="mb-4">
+      {message}
+    </Notice>
+  );
+
+  if (route.kind === 'form')
+    return (
+      <>
+        {message && <div className="px-4 pt-4">{notice}</div>}
+        <PrintableForm session={session} onBack={() => go({ kind: 'results' })} />
+      </>
+    );
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <a className="brand" href="#/">
-          <span className="brand-mark" aria-hidden="true">
-            210
-          </span>
-          <span>
-            <strong>Renta abierta</strong>
-            <small>Año gravable 2025 · personas naturales residentes</small>
-          </span>
-        </a>
-        <Backups session={session} />
-      </header>
+    <div className="wizard">
+      <nav className={`sidebar${navOpen ? ' open' : ''}`} aria-label="Pasos de la declaración">
+        <Button variant="outline" className="nav-toggle" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>
+          <span className="truncate">{idx >= 0 ? `Paso ${idx + 1} de ${flat.length}: ${step?.title ?? stepTitle(route)}` : 'Secciones'}</span>
+          {navOpen ? <ChevronUp aria-hidden /> : <ChevronDown aria-hidden />}
+        </Button>
+        <div className="steps-wrap">
+          <Steps session={session} route={route} go={go} byPage={byPage} current={step} />
+        </div>
+      </nav>
 
-      <div className="body">
-        <nav className={`sidebar${navOpen ? ' open' : ''}`} aria-label="Pasos de la declaración">
-          <button type="button" className="nav-toggle" aria-expanded={navOpen} onClick={() => setNavOpen(!navOpen)}>
-            <span>{idx >= 0 ? `Paso ${idx + 1} de ${flat.length}: ${step?.title ?? stepTitle(route)}` : 'Secciones'}</span>
-            <span aria-hidden="true">{navOpen ? '▲' : '▼'}</span>
-          </button>
-          <div className="steps-wrap">
-            <Steps session={session} route={route} go={go} byPage={byPage} current={step} />
-          </div>
-        </nav>
-
-        <main className="main" ref={mainRef} tabIndex={-1}>
-          {route.kind === 'home' && <Home session={session} go={go} />}
-          {route.kind === 'exogena' && <ExogenaPage session={session} />}
-          {route.kind === 'profile' && <ProfilePage session={session} onDone={() => next && go(next)} />}
-          {route.kind === 'results' && <ResultsPage session={session} go={goSheet} openForm={() => go({ kind: 'form' })} />}
-          {route.kind === 'page' &&
-            (page && step ? (
-              <>
-                <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={flat.length} aria-valuenow={idx + 1} aria-label="Progreso de la declaración">
-                  <div className="progress-bar" style={{ width: `${Math.round(((idx + 1) / flat.length) * 100)}%` }} />
-                </div>
-                <p className="eyebrow">
-                  {page.group.title} · {page.title}
-                  {pageStepsNow.length > 1 && ` · Paso ${pageStepsNow.indexOf(step) + 1} de ${pageStepsNow.length}`}
-                </p>
-                {step.sheetTitle && step.sheetTitle !== step.title && <p className="sheet-kicker">{step.sheetTitle}</p>}
-                <h1>{step.title}</h1>
-                {page.guide && step === pageStepsNow[0] && (
-                  <div className="page-guide">
+      <div className="main" ref={mainRef} tabIndex={-1}>
+        {notice}
+        {route.kind === 'home' && <HomePage session={session} start={() => go({ kind: 'profile' })} results={() => go({ kind: 'results' })} fix={() => go({ kind: 'page', id: 'datos-generales' })} />}
+        {route.kind === 'exogena' && <ExogenaPage session={session} />}
+        {route.kind === 'profile' && <ProfilePage session={session} onDone={() => next && go(next)} />}
+        {route.kind === 'results' && <ResultsPage session={session} go={goSheet} openForm={() => go({ kind: 'form' })} />}
+        {route.kind === 'page' &&
+          (page && step ? (
+            <>
+              <Progress
+                className="mb-5"
+                value={Math.round(((idx + 1) / flat.length) * 100)}
+                aria-label="Progreso de la declaración"
+                getValueLabel={() => `Paso ${idx + 1} de ${flat.length}`}
+              />
+              <p className="eyebrow">
+                {page.group.title} · {page.title}
+                {pageStepsNow.length > 1 && ` · Paso ${pageStepsNow.indexOf(step) + 1} de ${pageStepsNow.length}`}
+              </p>
+              {step.sheetTitle && step.sheetTitle !== step.title && <Text variant="muted">{step.sheetTitle}</Text>}
+              <Text variant="title" className="mb-4">
+                {step.title}
+              </Text>
+              {page.guide && step === pageStepsNow[0] && (
+                <Notice tone="info" className="page-guide mb-4">
+                  <div className="grid gap-1.5">
                     {page.guide.map((p, i) => (
                       <p key={i}>{p}</p>
                     ))}
                   </div>
-                )}
-                <StepView key={step.id} session={session} step={step} />
-              </>
-            ) : page ? (
-              <p className="muted">Con sus respuestas actuales esta sección no tiene preguntas.</p>
+                </Notice>
+              )}
+              <StepView key={step.id} session={session} step={step} />
+            </>
+          ) : page ? (
+            <Text variant="muted">Con sus respuestas actuales esta sección no tiene preguntas.</Text>
+          ) : (
+            <Text>Esta sección no existe.</Text>
+          ))}
+        {route.kind !== 'home' && (
+          <nav className="pager" aria-label="Anterior y siguiente">
+            {prev ? (
+              <Button variant="outline" data-pager="prev" onClick={() => go(prev)}>
+                <ArrowLeft aria-hidden />
+                Atrás
+              </Button>
             ) : (
-              <p>Esta sección no existe.</p>
-            ))}
-          {route.kind !== 'home' && (
-            <nav className="pager" aria-label="Anterior y siguiente">
-              {prev ? (
-                <button type="button" className="ghost" onClick={() => go(prev)}>
-                  ← Atrás
-                </button>
-              ) : (
-                <span />
-              )}
-              {next && (
-                <button type="button" className="primary" onClick={() => go(next)}>
-                  {next.kind === 'results' ? 'Ver resultado' : 'Continuar'} →
-                </button>
-              )}
-            </nav>
-          )}
-        </main>
+              <span />
+            )}
+            {next && (
+              <Button className="min-w-40" data-pager="next" onClick={() => go(next)}>
+                {next.kind === 'results' ? 'Ver resultado' : 'Continuar'}
+                <ArrowRight aria-hidden />
+              </Button>
+            )}
+          </nav>
+        )}
       </div>
     </div>
   );
@@ -235,9 +246,9 @@ function Steps({
                     <a href={href({ kind: 'page', id: p.id, step: ss[0]?.id })} className={`step${open ? ' is-open' : ''}`}>
                       <span>{p.title}</span>
                       {ss.length > 0 && (
-                        <span className="pill" title={`${done} de ${ss.length} pasos con datos`}>
+                        <StatusBadge tone={done === ss.length ? 'success' : 'neutral'} className="tabular-nums" title={`${done} de ${ss.length} pasos con datos`}>
                           {done}/{ss.length}
-                        </span>
+                        </StatusBadge>
                       )}
                     </a>
                     {open && ss.length > 1 && (
@@ -247,11 +258,7 @@ function Steps({
                             stepRoute(x),
                             x.title,
                             x.id === current?.id,
-                            stepHasData(session, x) ? (
-                              <span className="tick" aria-label="con datos">
-                                ✓
-                              </span>
-                            ) : undefined,
+                            stepHasData(session, x) ? <Check className="tick" aria-label="con datos" /> : undefined,
                           ),
                         )}
                       </ol>
@@ -264,44 +271,10 @@ function Steps({
         );
       })}
       <ul className="steps">{link({ kind: 'results' }, 'Resultado', cur === '#/resultado')}</ul>
-      <button type="button" className="link small" onClick={() => go({ kind: 'profile' })}>
+      <Button variant="link" size="sm" className="justify-start self-start px-2.5" onClick={() => go({ kind: 'profile' })}>
         ¿Falta una sección? Revise su perfil
-      </button>
+      </Button>
     </>
-  );
-}
-
-function Home({ session, go }: { session: Session; go: (r: Route) => void }) {
-  const started = Object.keys(session.inputs).length > 0 || Object.keys(session.profile).length > 0;
-  return (
-    <div className="home">
-      <h1>Su declaración de renta 2025, sin Excel ni macros</h1>
-      <p className="lede">
-        Prepare el formulario 210 respondiendo preguntas sencillas. Los cálculos son los mismos del Programa Ayuda Renta 2025 de
-        la DIAN, y el resultado es el formulario 210 con los valores para copiar en los servicios en línea de la DIAN.
-      </p>
-      <ul className="facts">
-        <li>
-          <strong>Sus datos no salen de este equipo.</strong> Todo se calcula en su navegador y no se envía a ningún servidor.
-          Guarde un respaldo para continuar en otro equipo.
-        </li>
-        <li>
-          <strong>No es un servicio de la DIAN.</strong> Es una herramienta independiente para preparar la declaración; la
-          presentación se hace en los servicios en línea de la DIAN.
-        </li>
-      </ul>
-      <div className="start">
-        <button type="button" className="primary" onClick={() => go({ kind: 'profile' })}>
-          {started ? 'Continuar' : 'Empezar'}
-        </button>
-        {started && (
-          <button type="button" className="ghost" onClick={() => go({ kind: 'results' })}>
-            Ver resultado
-          </button>
-        )}
-      </div>
-      {started && <Pending session={session} go={() => go({ kind: 'page', id: 'datos-generales' })} />}
-    </div>
   );
 }
 
@@ -362,92 +335,23 @@ ${footer}
     <div className="print-page" style={{ '--print-zoom': scale } as CSSProperties}>
       <style>{pageCss}</style>
       <div className="print-bar">
-        <button type="button" className="ghost" onClick={onBack}>
-          ← Volver al resultado
-        </button>
-        <button type="button" className="primary" onClick={() => window.print()}>
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeft aria-hidden />
+          Volver al resultado
+        </Button>
+        <Button onClick={() => window.print()}>
+          <Printer aria-hidden />
           Imprimir o guardar PDF
-        </button>
+        </Button>
       </div>
-      <p className="print-note muted">
+      <Text variant="muted" className="print-note">
         Formulario 210 tal como lo genera el Programa Ayuda Renta 2025. Úselo como guía para diligenciar el formulario oficial.
-      </p>
+      </Text>
       {pages.map((range) => (
         <div key={range[0]} className="print-sheet">
           <SheetGrid session={session} sheet={sheet} hiddenRows={hidden} rowRange={range} onFocusCell={() => undefined} onNavigate={() => undefined} titles={new Map()} />
         </div>
       ))}
-    </div>
-  );
-}
-
-function Backups({ session }: { session: Session }) {
-  const [confirming, setConfirming] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const save = () => {
-    const blob = new Blob([session.exportJSON()], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `renta-2025-respaldo-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    setMsg('Respaldo descargado.');
-  };
-  const open = async (f: File | undefined) => {
-    if (!f) return;
-    try {
-      const { skipped } = session.importJSON(await f.text());
-      setMsg(
-        skipped.length
-          ? `Respaldo cargado. ${skipped.length} ${skipped.length === 1 ? 'valor no se reconoció' : 'valores no se reconocieron'}: ${skipped.slice(0, 5).join(', ')}${skipped.length > 5 ? '…' : ''}`
-          : 'Respaldo cargado.',
-      );
-    } catch (e) {
-      setMsg((e as Error).message || 'No se pudo leer el archivo.');
-    }
-    if (fileRef.current) fileRef.current.value = '';
-  };
-
-  return (
-    <div className="backups">
-      <button type="button" onClick={save}>
-        Guardar respaldo
-      </button>
-      <button type="button" onClick={() => fileRef.current?.click()}>
-        Abrir respaldo
-      </button>
-      <input ref={fileRef} id="backup-file" type="file" accept="application/json,.json" hidden onChange={(e) => open(e.target.files?.[0])} />
-      {confirming ? (
-        <span className="confirm">
-          ¿Borrar todos los datos de este navegador?
-          <button
-            type="button"
-            className="danger"
-            onClick={() => {
-              session.replace({});
-              session.setExogena(null);
-              setConfirming(false);
-              setMsg('Datos borrados.');
-            }}
-          >
-            Borrar
-          </button>
-          <button type="button" onClick={() => setConfirming(false)}>
-            Cancelar
-          </button>
-        </span>
-      ) : (
-        <button type="button" className="quiet" onClick={() => setConfirming(true)}>
-          Borrar todo
-        </button>
-      )}
-      {msg && (
-        <span className="toast" role="status" onAnimationEnd={() => setMsg(null)}>
-          {msg}
-        </span>
-      )}
     </div>
   );
 }

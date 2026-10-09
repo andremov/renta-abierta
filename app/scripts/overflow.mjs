@@ -13,7 +13,7 @@ await p.goto(base);
 await p.evaluate((i) => localStorage.setItem('renta-ag2025:inputs:v1', JSON.stringify(i)), inputs);
 await p.goto(`${base}#/${hash}`);
 await p.reload();
-await p.waitForSelector('.topbar');
+await p.waitForSelector('header');
 const report = await p.evaluate(() => {
   const els = [...document.querySelectorAll('body *')]
     .map((e) => ({ e, right: e.getBoundingClientRect().right }))

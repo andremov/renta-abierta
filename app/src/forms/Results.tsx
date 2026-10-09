@@ -1,5 +1,9 @@
 // Results: headline figures, every Form 210 box for transcription, and the printable form.
 import { useState } from 'react';
+import { FileText } from 'lucide-react';
+import { CheckboxField, CopyButton, Section, StatGroup, StatTile, Text } from '@andremov/brand';
+import { Button } from '@andremov/brand/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@andremov/brand/ui/table';
 import type { Session } from '../app/store';
 import { formatValue } from '../app/format';
 import { XErr, type Scalar } from '../engine/types';
@@ -52,109 +56,77 @@ export function ResultsPage({ session, go, openForm }: { session: Session; go: (
   const sections = [...new Set(BOXES.map((b) => b.section))];
 
   return (
-    <div className="results">
-      <h1>Resultado de su declaración</h1>
-      <div className="headline">
+    <div className="results grid gap-5">
+      <Text variant="title">Resultado de su declaración</Text>
+      <StatGroup className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {typeof favor === 'number' && favor > 0 ? (
-          <div className="figure good">
-            <span>Saldo a favor (casilla 137)</span>
-            <strong className="num">{money(favor)}</strong>
-          </div>
+          <StatTile size="sm" tone="brand" label="Saldo a favor (casilla 137)" value={money(favor)} />
         ) : (
-          <div className="figure">
-            <span>Saldo a pagar (casilla 136)</span>
-            <strong className="num">{money(pagar)}</strong>
-          </div>
+          <StatTile size="sm" tone="brand" label="Saldo a pagar (casilla 136)" value={money(pagar)} />
         )}
-        <div className="figure">
-          <span>Impuesto neto de renta (casilla 126)</span>
-          <strong className="num">{money(val(126))}</strong>
-        </div>
-        <div className="figure">
-          <span>Total patrimonio líquido (casilla 31)</span>
-          <strong className="num">{money(val(31))}</strong>
-        </div>
-        <div className="figure">
-          <span>Fecha límite para presentar</span>
-          <strong className="num">{formatValue(session.get('DatosGenerales', 'E13'), 'dd/mm/yyyy') || '—'}</strong>
-        </div>
-      </div>
+        <StatTile size="sm" label="Impuesto neto de renta (casilla 126)" value={money(val(126))} />
+        <StatTile size="sm" label="Total patrimonio líquido (casilla 31)" value={money(val(31))} />
+        <StatTile size="sm" label="Fecha límite para presentar" value={formatValue(session.get('DatosGenerales', 'E13'), 'dd/mm/yyyy') || '—'} />
+      </StatGroup>
       <Pending session={session} go={go} />
 
-      <div className="results-actions">
-        <button type="button" className="primary" onClick={openForm}>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button onClick={openForm}>
+          <FileText aria-hidden />
           Ver formulario 210
-        </button>
-        <label className="check">
-          <input type="checkbox" checked={showZero} onChange={(e) => setShowZero(e.target.checked)} />
-          <span>Mostrar casillas en cero</span>
-        </label>
+        </Button>
+        <CheckboxField label="Mostrar casillas en cero" checked={showZero} onChange={setShowZero} />
       </div>
-      <p className="muted">
+      <Text variant="muted">
         Copie cada valor en la casilla del mismo número en el formulario 210 de los servicios en línea de la DIAN.
-      </p>
+      </Text>
 
       {sections.map((sec) => {
         const rows = BOXES.filter((b) => b.section === sec).map((b) => ({ b, v: boxValue(session, b) }));
         const shown = rows.filter(({ b, v }) => showZero || (v !== null && v !== '' && v !== 0) || NOTES[b.n]?.(session));
         if (!shown.length) return null;
         return (
-          <section key={sec} className="box-section">
-            <h2>{sec}</h2>
-            <table className="boxes">
-              <thead>
-                <tr>
-                  <th scope="col">Casilla</th>
-                  <th scope="col">Concepto</th>
-                  <th scope="col" className="r">
+          <Section key={sec} title={sec}>
+            <Table className="boxes">
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Casilla</TableHead>
+                  <TableHead scope="col">Concepto</TableHead>
+                  <TableHead scope="col" className="text-right">
                     Valor
-                  </th>
-                  <th scope="col">
+                  </TableHead>
+                  <TableHead scope="col">
                     <span className="sr-only">Copiar</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {shown.map(({ b, v }) => (
-                  <tr key={b.n} data-casilla={b.n}>
-                    <td className="num n">{b.n}</td>
-                    <td>
-                      {b.concept}
-                      {NOTES[b.n]?.(session) && <small className="box-note">{NOTES[b.n](session)}</small>}
-                    </td>
-                    <td className="num r">{display(b, v) || '0'}</td>
-                    <td>
-                      <CopyButton text={display(b, v).replace(/\./g, '') || '0'} label={`Copiar casilla ${b.n}`} />
-                    </td>
-                  </tr>
+                  <TableRow key={b.n} data-casilla={b.n}>
+                    <TableCell className="n">
+                      <Text variant="mono">{b.n}</Text>
+                    </TableCell>
+                    <TableCell className="whitespace-normal">
+                      <Text as="span">{b.concept}</Text>
+                      {NOTES[b.n]?.(session) && (
+                        <Text variant="hint" className="block">
+                          {NOTES[b.n](session)}
+                        </Text>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Text variant="mono">{display(b, v) || '0'}</Text>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <CopyButton value={display(b, v).replace(/\./g, '') || '0'} aria-label={`Copiar casilla ${b.n}`} />
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
-          </section>
+              </TableBody>
+            </Table>
+          </Section>
         );
       })}
     </div>
-  );
-}
-
-function CopyButton({ text, label }: { text: string; label: string }) {
-  const [done, setDone] = useState(false);
-  return (
-    <button
-      type="button"
-      className="copy"
-      aria-label={label}
-      onClick={() =>
-        navigator.clipboard?.writeText(text).then(
-          () => {
-            setDone(true);
-            setTimeout(() => setDone(false), 1200);
-          },
-          () => undefined,
-        )
-      }
-    >
-      {done ? 'Copiado' : 'Copiar'}
-    </button>
   );
 }

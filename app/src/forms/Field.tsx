@@ -1,3 +1,4 @@
+// andremov-brand-check-unique: the wizard's field (label row with Ayuda and Pendiente, figures right-aligned in monospace like the printed form, computed rows) is this tool's own UI
 // One form field bound to a workbook cell.
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { Scalar } from '../engine/types';
@@ -7,6 +8,12 @@ import { dateToSerial, editText, formatValue, parseInput, serialToDate } from '.
 import { checkValidation, listOptions, pickOption, tidyOption, type Validation } from '../app/validation';
 import type { CellHelp } from '../app/nav';
 import type { FieldType } from './spec';
+import { Check } from 'lucide-react';
+import { Notice, SegmentedControl, SelectField, Text } from '@andremov/brand';
+import { Button } from '@andremov/brand/ui/button';
+import { Input } from '@andremov/brand/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@andremov/brand/ui/input-group';
+import { Toggle } from '@andremov/brand/ui/toggle';
 
 interface InputProps {
   session: Session;
@@ -94,29 +101,29 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
     case 'yesno': {
       const v = typeof value === 'string' ? value.trim().toUpperCase() : '';
       const opts = dv?.f1?.slice(1, -1).split(',').map((s) => s.trim()) ?? ['Si', 'No'];
+      const selected = opts.find((o) => o.toUpperCase() === v) ?? null;
       control = (
-        <div className="seg" role="radiogroup" aria-labelledby={`${id}-label`}>
-          {opts.map((o) => (
-            <button
-              key={o}
-              type="button"
-              role="radio"
-              aria-checked={v === o.toUpperCase()}
-              className={v === o.toUpperCase() ? 'on' : ''}
-              onClick={() => commit(v === o.toUpperCase() ? null : o)}
-            >
-              {o === 'Si' || o === 'SI' ? 'Sí' : o}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          aria-label={label}
+          options={opts.map((o) => ({ value: o, label: o === 'Si' || o === 'SI' ? 'Sí' : o }))}
+          value={selected}
+          // choosing the selected answer again clears it
+          onChange={(o) => commit(o === selected ? null : o)}
+        />
       );
       break;
     }
     case 'check':
       control = (
-        <label className="check">
-          <input {...common} type="checkbox" checked={String(value ?? '').trim().toUpperCase() === 'X'} onChange={(e) => commit(e.target.checked ? 'X' : null)} />
-          <span>Sí</span>
+        <label className="inline-flex cursor-pointer items-center gap-2">
+          <input
+            {...common}
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={String(value ?? '').trim().toUpperCase() === 'X'}
+            onChange={(e) => commit(e.target.checked ? 'X' : null)}
+          />
+          <Text as="span">Sí</Text>
         </label>
       );
       break;
@@ -125,7 +132,7 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
       if (options.length > 40) {
         control = (
           <>
-            <input
+            <Input
               {...common}
               list={`${id}-list`}
               value={draft ?? tidyOption(current)}
@@ -142,22 +149,23 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
         );
       } else {
         control = (
-          <select {...common} value={current} onChange={(e) => commitPick(e.target.value)}>
-            <option value="">Seleccione…</option>
-            {current && !options.includes(current) && <option value={current}>{current}</option>}
-            {options.map((o) => (
-              <option key={o} value={o}>
-                {o}
-              </option>
-            ))}
-          </select>
+          <SelectField
+            {...common}
+            value={current}
+            onChange={(v) => commitPick(v)}
+            options={[
+              { value: '', label: 'Seleccione…' },
+              ...(current && !options.includes(current) ? [{ value: current, label: current }] : []),
+              ...options.map((o) => ({ value: o, label: o })),
+            ]}
+          />
         );
       }
       break;
     }
     case 'date':
       control = (
-        <input
+        <Input
           {...common}
           type="date"
           value={typeof value === 'number' ? isoDate(value) : ''}
@@ -167,12 +175,19 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
       break;
     default: {
       const shownNf = type === 'money' ? MONEY_NF : type === 'id' ? '0' : nf;
+      const numeric = type === 'money' || type === 'number' || type === 'percent';
       control = (
-        <div className={`text-input ${type}`}>
-          {type === 'money' && <span className="affix" aria-hidden="true">$</span>}
-          <input
+        <InputGroup>
+          {type === 'money' && (
+            <InputGroupAddon aria-hidden="true">
+              <Text variant="mono">$</Text>
+            </InputGroupAddon>
+          )}
+          <InputGroupInput
             {...common}
             type="text"
+            // figures in the brand's monospace with tabular digits, right-aligned like the printed form
+            className={numeric ? 'font-mono tabular-nums text-right' : type === 'id' ? 'font-mono tabular-nums' : undefined}
             inputMode={type === 'text' ? 'text' : type === 'id' ? 'numeric' : 'decimal'}
             autoComplete="off"
             spellCheck={type === 'text'}
@@ -187,8 +202,12 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
               }
             }}
           />
-          {type === 'percent' && <span className="affix" aria-hidden="true">%</span>}
-        </div>
+          {type === 'percent' && (
+            <InputGroupAddon align="inline-end" aria-hidden="true">
+              <Text variant="mono">%</Text>
+            </InputGroupAddon>
+          )}
+        </InputGroup>
       );
     }
   }
@@ -203,43 +222,47 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
   }
 
   return (
-    <div className={`field${compact ? ' compact' : ''}${error ? ' has-error' : ''}`}>
-      <div className="field-head">
-        <label id={`${id}-label`} htmlFor={type === 'yesno' ? undefined : id}>
+    <div className="field flex min-w-0 flex-col gap-1.5">
+      <div className="flex items-start justify-between gap-2">
+        <Text as="label" variant="heading" id={`${id}-label`} htmlFor={type === 'yesno' ? undefined : id} className="pt-1">
           {label}
-        </label>
-        <span className="field-tools">
-        {help?.text && (
-          <button type="button" className="help-toggle" aria-expanded={showHelp} aria-controls={`${id}-help`} onClick={() => setShowHelp(!showHelp)}>
-            {showHelp ? 'Ocultar ayuda' : 'Ayuda'}
-          </button>
-        )}
-        <button
-          type="button"
-          className={`pending-toggle${pendingNote !== undefined ? ' on' : ''}`}
-          aria-pressed={pendingNote !== undefined}
-          title="Marque el dato como pendiente para revisarlo antes de presentar"
-          onClick={() => session.setPending(key, pendingNote !== undefined ? null : '')}
-        >
-          {pendingNote !== undefined ? 'Pendiente ✓' : 'Pendiente'}
-        </button>
+        </Text>
+        <span className="inline-flex shrink-0 items-center gap-1">
+          {help?.text && (
+            <Button variant="link" size="xs" aria-expanded={showHelp} aria-controls={`${id}-help`} onClick={() => setShowHelp(!showHelp)}>
+              {showHelp ? 'Ocultar ayuda' : 'Ayuda'}
+            </Button>
+          )}
+          <Toggle
+            size="sm"
+            className="h-6 px-2 text-xs"
+            pressed={pendingNote !== undefined}
+            title="Marque el dato como pendiente para revisarlo antes de presentar"
+            onPressedChange={(on: boolean) => session.setPending(key, on ? '' : null)}
+          >
+            {pendingNote !== undefined && <Check aria-hidden />}
+            Pendiente
+          </Toggle>
         </span>
       </div>
       {dv?.prompt && !compact && (
-        <p id={`${id}-hint`} className="hint">
+        <Text variant="hint" as="p" id={`${id}-hint`} className="hint">
           {dv.prompt}
-        </p>
+        </Text>
       )}
       {control}
       {error && (
-        <p id={`${id}-err`} className="field-error" role="alert">
+        <Text as="p" id={`${id}-err`} className="text-danger-text" role="alert">
           {error}
-        </p>
+        </Text>
       )}
-      {!error && warning && <p className="field-warn">{warning}</p>}
+      {!error && warning && (
+        <Notice tone="warning" className="p-3">
+          {warning}
+        </Notice>
+      )}
       {pendingNote !== undefined && (
-        <input
-          className="pending-note"
+        <Input
           aria-label={`Nota sobre lo pendiente: ${label}`}
           placeholder="¿Qué falta confirmar? (opcional)"
           value={pendingNote}
@@ -247,13 +270,18 @@ export function FieldInput({ session, sheet, a1, label, type, nf, dv, help, chec
         />
       )}
       {help && showHelp && (
-        <div id={`${id}-help`} className="help-box">
-          {help.title && <strong>{help.title}</strong>}
-          {help.text.split(/\n+/).map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-          {help.norms && <p className="norms">{help.norms.replace(/\n+/g, ' ')}</p>}
-        </div>
+        <Notice tone="info" id={`${id}-help`} title={help.title || undefined}>
+          <div className="grid gap-1.5 whitespace-pre-line">
+            {help.text.split(/\n+/).map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+            {help.norms && (
+              <Text variant="hint" as="p">
+                {help.norms.replace(/\n+/g, ' ')}
+              </Text>
+            )}
+          </div>
+        </Notice>
       )}
     </div>
   );
@@ -270,7 +298,7 @@ export function CalcRow({ label, value, nf, strong }: { label: string; value: Sc
   return (
     <div className={`calc${strong ? ' strong' : ''}`}>
       <span>{label}</span>
-      <output className="num">{text || '—'}</output>
+      <output className="font-mono tabular-nums">{text || '—'}</output>
     </div>
   );
 }

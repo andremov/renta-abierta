@@ -1,3 +1,4 @@
+// andremov-brand-check-unique: the Formulario sheet rendered cell by cell with the workbook's own fills, borders and fonts (Excel parity) is this tool's own UI
 // Renders one worksheet as a CSS grid that mirrors the Excel layout.
 import { memo, useMemo, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import type { CellStyle, ModelSheet } from '../engine/workbook';
@@ -84,7 +85,8 @@ export function SheetGrid({ session, sheet, hiddenRows, rowRange, onFocusCell, o
   };
   const si = session.wb.sheetIndex(sheet.name);
   return (
-    <div className="sheet-scroll">
+    // white paper in both themes, so its controls use the light roles
+    <div className="sheet-scroll" data-theme="light">
       <div
         className="sheet-grid"
         role="grid"
