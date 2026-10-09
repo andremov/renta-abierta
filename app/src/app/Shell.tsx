@@ -2,7 +2,7 @@
 // App chrome: step navigation, routing between questionnaire, form pages and results.
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronUp, Printer } from 'lucide-react';
-import { Notice, StatusBadge, Text } from '@andremov/brand';
+import { Notice, Text } from '@andremov/brand';
 import { Button } from '@andremov/brand/ui/button';
 import { Progress } from '@andremov/brand/ui/progress';
 import type { Session } from './store';
@@ -226,10 +226,13 @@ function Steps({
   );
   return (
     <>
-      <ul className="steps">
-        {link({ kind: 'profile' }, 'Perfil', cur === '#/perfil')}
-        {link({ kind: 'exogena' }, 'Información exógena (opcional)', cur === '#/exogena')}
-      </ul>
+      <div className="step-group">
+        <h2>Inicio</h2>
+        <ul className="steps">
+          {link({ kind: 'profile' }, 'Perfil', cur === '#/perfil')}
+          {link({ kind: 'exogena' }, 'Información exógena (opcional)', cur === '#/exogena')}
+        </ul>
+      </div>
       {GROUPS.map((g) => {
         const pages = g.pages.filter((p) => byPage.has(p.id));
         if (!pages.length) return null;
@@ -245,11 +248,14 @@ function Steps({
                   <li key={p.id}>
                     <a href={href({ kind: 'page', id: p.id, step: ss[0]?.id })} className={`step${open ? ' is-open' : ''}`}>
                       <span>{p.title}</span>
-                      {ss.length > 0 && (
-                        <StatusBadge tone={done === ss.length ? 'success' : 'neutral'} className="tabular-nums" title={`${done} de ${ss.length} pasos con datos`}>
-                          {done}/{ss.length}
-                        </StatusBadge>
-                      )}
+                      {ss.length > 0 &&
+                        (done === ss.length ? (
+                          <Check className="tick" aria-label={`${ss.length} de ${ss.length} pasos con datos`} />
+                        ) : (
+                          <span className="step-count" title={`${done} de ${ss.length} pasos con datos`}>
+                            {done}/{ss.length}
+                          </span>
+                        ))}
                     </a>
                     {open && ss.length > 1 && (
                       <ol className="substeps">
@@ -270,10 +276,16 @@ function Steps({
           </div>
         );
       })}
-      <ul className="steps">{link({ kind: 'results' }, 'Resultado', cur === '#/resultado')}</ul>
-      <Button variant="link" size="sm" className="justify-start self-start px-2.5" onClick={() => go({ kind: 'profile' })}>
-        ¿Falta una sección? Revise su perfil
-      </Button>
+      <div className="step-group">
+        <h2>Revisión</h2>
+        <ul className="steps">{link({ kind: 'results' }, 'Resultado', cur === '#/resultado')}</ul>
+      </div>
+      <p className="steps-hint">
+        ¿Falta una sección?{' '}
+        <button type="button" onClick={() => go({ kind: 'profile' })}>
+          Revise su perfil
+        </button>
+      </p>
     </>
   );
 }

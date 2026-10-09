@@ -16,11 +16,11 @@
   max-height: calc(100dvh - 4rem);
   overflow-y: auto;
   border-right: 1px solid var(--border);
-  padding: 18px 12px 32px;
+  padding: 20px 16px 32px;
   background: var(--card);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
   min-height: calc(100dvh - 4rem);
 }
 .main {
@@ -45,7 +45,7 @@
 .steps-wrap {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 .steps {
   list-style: none;
@@ -61,14 +61,15 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--muted-foreground);
-  margin: 0 0 4px 10px;
+  margin: 0 0 6px 12px;
 }
 .step {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
+  /* a label that wraps keeps its count or check on the first line */
+  align-items: flex-start;
+  gap: 10px;
+  padding: 7px 12px;
   border-radius: var(--radius-md);
   color: var(--foreground);
   font-size: 0.875rem;
@@ -84,9 +85,36 @@
 }
 .step.is-current,
 .step.is-current:hover {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  /* the brand tint with an accent bar, like the kit's toggle "on", not a solid block */
+  background: var(--brand-surface);
+  color: var(--brand-text);
+  box-shadow: inset 3px 0 0 var(--brand);
   font-weight: 600;
+}
+.step-count {
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+.steps-hint {
+  margin: 4px 0 0;
+  padding: 14px 12px 0;
+  border-top: 1px solid var(--border);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.steps-hint button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--brand-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 .substeps {
   list-style: none;
@@ -106,8 +134,11 @@
   height: 1rem;
   color: var(--success-text);
 }
+.step .tick {
+  margin-top: 2px;
+}
 .is-current .tick {
-  color: var(--primary-foreground);
+  color: var(--brand-text);
 }
 .pager {
   display: flex;
