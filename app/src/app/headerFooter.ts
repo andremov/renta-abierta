@@ -76,7 +76,9 @@ const cssString = (s: string) =>
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
     .replace(/\n/g, '\\A ')
+    // oxlint-disable-next-line no-control-regex -- \u0000 is the page-number placeholder written by the parser
     .replace(/\u0000P/g, '" counter(page) "')
+    // oxlint-disable-next-line no-control-regex -- same placeholder, page count
     .replace(/\u0000N/g, '" counter(pages) "') +
   '"';
 

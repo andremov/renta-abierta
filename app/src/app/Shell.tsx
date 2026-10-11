@@ -60,6 +60,7 @@ function href(r: Route): string {
 const stepRoute = (x: Step): Route => ({ kind: 'page', id: x.pageId, step: x.id });
 
 /** A page applies when it is unconditional, a question enabling it was answered yes, or it already holds data. */
+// oxlint-disable-next-line react/only-export-components -- shared with the nav; only affects dev fast refresh
 export function isActive(session: Session, p: PageDef): boolean {
   if (!p.when) return true;
   if (p.when.some((q) => session.profile[q])) return true;
@@ -104,6 +105,7 @@ export function Shell({ session, message }: { session: Session; message: string 
   const prev = idx > 0 ? flat[idx - 1] : null;
   const next = idx >= 0 && idx < flat.length - 1 ? flat[idx + 1] : null;
   const [navOpen, setNavOpen] = useState(false);
+  // oxlint-disable-next-line react/set-state-in-effect -- closes the phone step menu after each navigation
   useEffect(() => setNavOpen(false), [here]);
 
   const notice = message && (

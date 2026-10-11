@@ -271,7 +271,10 @@ export class Workbook implements CellReader {
       deps.forEach((ds, i) => ds.forEach((d) => dependents[d].push(i)));
       const region = new Set<number>(cyclic);
       const queue = [...cyclic];
-      while (queue.length) for (const d of dependents[queue.pop()!]) if (!region.has(d)) region.add(d), queue.push(d);
+      while (queue.length) for (const d of dependents[queue.pop()!]) if (!region.has(d)) {
+        region.add(d);
+        queue.push(d);
+      }
       this.plan = [
         ...plan.filter((p) => typeof p === 'number' && !region.has(p)),
         [...region].sort((a, b) => rank(a) - rank(b)),

@@ -78,7 +78,7 @@ type Item = { c: number; kind: 'L' | 'I' | 'F'; a1: string; text: string; cell?:
 const tidy = (s: string) =>
   s
     .replace(/\s+/g, ' ')
-    .replace(/\s*[=\-]{2,}>?\s*$/, '')
+    .replace(/\s*[=-]{2,}>?\s*$/, '')
     .replace(/,?\s*pulse aqu[ií] para ingresar datos/i, '')
     .trim();
 const isExplanationWord = (s: string) => /^explicaci[oó]n:?$/i.test(s.trim());

@@ -13,6 +13,7 @@ function files(dir: string): string[] {
 
 it('source files contain no control characters', () => {
   const bad = files(new URL('.', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'))
+    // oxlint-disable-next-line no-control-regex -- this test looks for control characters on purpose
     .filter((f) => /[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(readFileSync(f, 'utf8')));
   expect(bad).toEqual([]);
 });
